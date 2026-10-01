@@ -3,6 +3,20 @@ import { useHospital } from '../context/HospitalContext';
 import { HospitalLogoFrame } from './HospitalLogoFrame';
 import { DoctorAvatar } from './DoctorAvatar';
 import { DoctorStatus } from '../types';
+import { 
+  Clock, 
+  Plus, 
+  Check, 
+  Droplet, 
+  Scan, 
+  Phone, 
+  Building2, 
+  CheckCircle2, 
+  Activity, 
+  Flame, 
+  Coffee, 
+  PowerOff
+} from 'lucide-react';
 
 export const DoctorView: React.FC = () => {
   const { 
@@ -13,7 +27,8 @@ export const DoctorView: React.FC = () => {
     setSelectedDoctorId,
     updateDoctorStatus,
     acknowledgePatientByDoctor,
-    broadcastHospitalAlert
+    broadcastHospitalAlert,
+    playClickTone
   } = useHospital();
 
   const currentDoctor = doctors.find((d) => d.id === selectedDoctorId) || doctors[0];
@@ -30,16 +45,19 @@ export const DoctorView: React.FC = () => {
   );
 
   const handleStatusChange = (status: DoctorStatus) => {
+    playClickTone();
     updateDoctorStatus(currentDoctor.id, status, availableUntilTime, statusNote);
   };
 
   const handleSaveShiftTime = (e: React.FormEvent) => {
     e.preventDefault();
+    playClickTone();
     updateDoctorStatus(currentDoctor.id, currentDoctor.status, availableUntilTime, statusNote);
     setIsUpdatingShift(false);
   };
 
   const handleQuickAddAvailability = (hours: number) => {
+    playClickTone();
     const now = new Date();
     now.setHours(now.getHours() + hours);
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -48,6 +66,7 @@ export const DoctorView: React.FC = () => {
   };
 
   const handleOrderPreArrival = (dispatchId: string, protocolName: string) => {
+    playClickTone();
     broadcastHospitalAlert(
       `STAT ORDER: ${protocolName}`,
       `${currentDoctor.name} initiated pre-arrival preparation for incoming dispatch #${dispatchId.slice(-4)}. Emergency staff alerted.`,
@@ -56,9 +75,14 @@ export const DoctorView: React.FC = () => {
     );
   };
 
+  const handleAcknowledge = (dispId: string) => {
+    playClickTone();
+    acknowledgePatientByDoctor(dispId, currentDoctor.id);
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-5 sm:space-y-6">
-      {/* Doctor Identity Header with Framed Logo */}
+      {/* Doctor Header */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-4 sm:p-5 shadow-2xl">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-zinc-800">
           <div className="flex items-center gap-3.5">
@@ -66,24 +90,32 @@ export const DoctorView: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg sm:text-xl font-black text-white">{currentDoctor.name}</h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-950 text-red-400 border border-red-800 uppercase font-mono">
-                  Doctor Station
+                <span className="text-[10px] font-mono text-zinc-400 border border-zinc-800 bg-black px-1.5 py-0.5 rounded">
+                  On-Duty
                 </span>
               </div>
               <p className="text-xs text-red-400 font-semibold">{currentDoctor.specialty}</p>
-              <p className="text-[11px] text-zinc-400">
-                Hospital: <strong className="text-white">{currentHospital.name}</strong> • Phone: <span className="font-mono text-zinc-300">{currentDoctor.phone}</span>
-              </p>
+              <div className="flex flex-wrap items-center gap-3 text-[11px] text-zinc-400 mt-0.5">
+                <span className="flex items-center gap-1">
+                  <Building2 className="w-3.5 h-3.5 text-zinc-500" />
+                  <strong className="text-white">{currentHospital.name}</strong>
+                </span>
+                <span className="flex items-center gap-1">
+                  <Phone className="w-3.5 h-3.5 text-red-400" />
+                  <span className="font-mono text-zinc-300">{currentDoctor.phone}</span>
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Switch Doctor Profile & Logo */}
+          {/* Profile Switcher & Logo Frame */}
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
             <div className="flex flex-col items-start sm:items-end">
               <span className="text-[10px] text-zinc-400 uppercase font-semibold mb-1">Switch Doctor Profile:</span>
               <select
                 value={selectedDoctorId}
                 onChange={(e) => {
+                  playClickTone();
                   setSelectedDoctorId(e.target.value);
                   const doc = doctors.find((d) => d.id === e.target.value);
                   if (doc) {
@@ -104,109 +136,121 @@ export const DoctorView: React.FC = () => {
           </div>
         </div>
 
-        {/* Real-time Status Switcher (Mobile optimized grid) */}
+        {/* Real-time Duty Status Grid */}
         <div>
           <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
-            Duty & Availability Status (Broadcast to Ambulance Routing Algorithm)
+            Duty & Availability Status (Broadcast to Ambulance Routing)
           </span>
 
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {[
               {
                 status: 'available',
-                label: 'Available / On-Duty',
-                desc: 'Ready for intakes',
-                bg: 'bg-zinc-900 border-zinc-700 text-white',
+                label: 'Available',
+                desc: 'Ready for intake',
+                icon: CheckCircle2,
                 activeBg: 'bg-red-600 border-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.7)] font-black',
                 indicator: 'bg-white',
               },
               {
                 status: 'in_surgery',
-                label: 'In Surgery / OR',
-                desc: 'Cannot take patients',
-                bg: 'bg-zinc-900 border-zinc-700 text-zinc-300',
+                label: 'In Surgery',
+                desc: 'Theater blocked',
+                icon: Activity,
                 activeBg: 'bg-zinc-800 border-white text-white shadow-lg font-black',
                 indicator: 'bg-amber-400',
               },
               {
                 status: 'emergency_call',
-                label: 'Code Blue / Resus',
-                desc: 'Critical case standby',
-                bg: 'bg-zinc-900 border-zinc-700 text-zinc-300',
+                label: 'Code Blue',
+                desc: 'Resus critical',
+                icon: Flame,
                 activeBg: 'bg-red-700 border-red-400 text-white shadow-[0_0_15px_rgba(239,68,68,0.7)] font-black',
                 indicator: 'bg-red-400',
               },
               {
                 status: 'on_break',
-                label: 'On Break / Rounds',
-                desc: 'Delayed response',
-                bg: 'bg-zinc-900 border-zinc-700 text-zinc-300',
+                label: 'On Break',
+                desc: 'Delayed standby',
+                icon: Coffee,
                 activeBg: 'bg-zinc-800 border-zinc-600 text-white shadow-lg font-black',
                 indicator: 'bg-zinc-400',
               },
               {
                 status: 'off_duty',
                 label: 'Off Duty',
-                desc: 'Shift completed',
-                bg: 'bg-zinc-900 border-zinc-700 text-zinc-400',
+                desc: 'Shift finished',
+                icon: PowerOff,
                 activeBg: 'bg-black border-zinc-600 text-zinc-400 shadow-lg',
                 indicator: 'bg-zinc-600',
               },
             ].map((item) => {
               const isActive = currentDoctor.status === item.status;
+              const Icon = item.icon;
               return (
                 <button
                   key={item.status}
                   type="button"
                   onClick={() => handleStatusChange(item.status as DoctorStatus)}
-                  className={`p-2.5 sm:p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                    isActive ? item.activeBg : `${item.bg} hover:border-zinc-500`
+                  className={`p-2.5 sm:p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between active:scale-95 ${
+                    isActive ? item.activeBg : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600'
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className={`w-2 h-2 rounded-full ${item.indicator} ${isActive ? 'animate-ping' : ''}`}></span>
-                    <span className="font-bold text-xs truncate">{item.label}</span>
+                  <div className="flex items-center justify-between mb-1">
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className={`w-2 h-2 rounded-full ${item.indicator} ${isActive ? 'animate-ping' : ''}`} />
                   </div>
-                  <span className="text-[10px] opacity-80 block truncate">{item.desc}</span>
+                  <div>
+                    <span className="font-bold text-xs block truncate">{item.label}</span>
+                    <span className="text-[10px] opacity-75 block truncate">{item.desc}</span>
+                  </div>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Time & Shift Availability Station */}
+        {/* Availability Window */}
         <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-black border border-zinc-800">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
             <div>
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
                 Availability Window for Ambulance Dispatch
               </span>
-              <p className="text-xs text-zinc-300">
-                Current Shift: <span className="font-mono text-white font-bold">{currentDoctor.shiftStart} - {currentDoctor.shiftEnd}</span> • Available Until:{' '}
-                <span className="font-mono text-red-400 font-bold text-sm">{currentDoctor.availableUntil}</span>
-              </p>
+              <div className="flex items-center gap-2 text-xs text-zinc-300 mt-0.5">
+                <Clock className="w-3.5 h-3.5 text-red-500" />
+                <span>Shift: <strong className="font-mono text-white">{currentDoctor.shiftStart} - {currentDoctor.shiftEnd}</strong></span>
+                <span aria-hidden="true" className="text-zinc-600">·</span>
+                <span>Available Until: <strong className="font-mono text-red-400 text-sm">{currentDoctor.availableUntil}</strong></span>
+              </div>
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="text-xs text-zinc-400 hidden sm:inline">Quick Extend:</span>
               <button
                 type="button"
                 onClick={() => handleQuickAddAvailability(1)}
-                className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs border border-zinc-700 cursor-pointer active:scale-95"
+                className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold px-2.5 py-1.5 rounded-lg text-xs border border-zinc-700 cursor-pointer active:scale-95 flex items-center gap-1"
+                title="Extend availability by 1 hour"
               >
-                +1 Hour
+                <Plus className="w-3 h-3" />
+                <span>1h</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickAddAvailability(2)}
-                className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs border border-zinc-700 cursor-pointer active:scale-95"
+                className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold px-2.5 py-1.5 rounded-lg text-xs border border-zinc-700 cursor-pointer active:scale-95 flex items-center gap-1"
+                title="Extend availability by 2 hours"
               >
-                +2 Hours
+                <Plus className="w-3 h-3" />
+                <span>2h</span>
               </button>
               <button
                 type="button"
-                onClick={() => setIsUpdatingShift(!isUpdatingShift)}
-                className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1 rounded-lg text-xs cursor-pointer btn-neon-red"
+                onClick={() => {
+                  playClickTone();
+                  setIsUpdatingShift(!isUpdatingShift);
+                }}
+                className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs cursor-pointer btn-neon-red active:scale-95"
               >
                 {isUpdatingShift ? 'Close' : 'Edit Time'}
               </button>
@@ -214,42 +258,36 @@ export const DoctorView: React.FC = () => {
           </div>
 
           {isUpdatingShift && (
-            <form onSubmit={handleSaveShiftTime} className="mt-3 pt-3 border-t border-zinc-800 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <form onSubmit={handleSaveShiftTime} className="pt-3 border-t border-zinc-800 mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
               <div>
-                <label className="text-xs text-zinc-400 block mb-1">Available Until (HH:MM)</label>
+                <label className="text-[10px] text-zinc-400 block mb-1 uppercase">Available Until (HH:MM)</label>
                 <input
                   type="time"
                   value={availableUntilTime}
                   onChange={(e) => setAvailableUntilTime(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-1.5 text-sm text-white font-mono"
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono"
                   required
                 />
               </div>
-              <div className="sm:col-span-2">
-                <label className="text-xs text-zinc-400 block mb-1">Location / Status Note</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={statusNote}
-                    onChange={(e) => setStatusNote(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-white"
-                    placeholder="e.g. In Trauma Resus Bay 1, River City Hospital Sukkur."
-                  />
-                  <button
-                    type="submit"
-                    className="bg-red-600 hover:bg-red-500 text-white font-black px-4 py-1.5 rounded-xl text-xs whitespace-nowrap cursor-pointer uppercase tracking-wider btn-neon-red"
-                  >
-                    Broadcast Update
-                  </button>
-                </div>
-              </div>
-            </form>
-          )}
 
-          {currentDoctor.note && (
-            <p className="text-xs text-zinc-400 italic mt-2">
-              Note on File: "{currentDoctor.note}"
-            </p>
+              <div>
+                <label className="text-[10px] text-zinc-400 block mb-1 uppercase">On-Duty Station Note</label>
+                <input
+                  type="text"
+                  value={statusNote}
+                  onChange={(e) => setStatusNote(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-white"
+                  placeholder="e.g. In Cath Lab Suite 1"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="bg-red-600 hover:bg-red-500 text-white font-bold text-xs py-2 px-3 rounded-xl shadow cursor-pointer uppercase tracking-wider btn-neon-red"
+              >
+                Save Availability
+              </button>
+            </form>
           )}
         </div>
       </div>
@@ -258,24 +296,22 @@ export const DoctorView: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
             <h3 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
               Inbound Emergency Ambulances ({inboundDispatches.length})
             </h3>
           </div>
-          <span className="text-[11px] text-zinc-400 font-mono">Firebase Firestore Stream</span>
+          <span className="text-[11px] text-zinc-500 font-mono">Firestore Real-Time</span>
         </div>
 
         {inboundDispatches.length === 0 ? (
           <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 text-center">
-            <div className="w-12 h-12 rounded-full bg-zinc-900 flex items-center justify-center mx-auto mb-3 text-zinc-500">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
+            <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center mx-auto mb-2.5 text-zinc-500">
+              <CheckCircle2 className="w-5 h-5 text-zinc-600" />
             </div>
             <h4 className="text-zinc-300 font-bold text-sm">No Pending Inbound Emergencies</h4>
             <p className="text-xs text-zinc-500 max-w-sm mx-auto mt-1">
-              Your specialty is standing by. When an ambulance routes a critical patient to your facility, real-time vitals and telemetry will appear here instantly.
+              Your specialty is standing by. When an ambulance routes a patient to your station, real-time telemetry will appear here instantly.
             </p>
           </div>
         ) : (
@@ -289,7 +325,7 @@ export const DoctorView: React.FC = () => {
                   key={disp.id}
                   className={`bg-zinc-950 border rounded-3xl p-4 sm:p-5 shadow-xl transition-all ${
                     disp.esiLevel === 1
-                      ? 'border-red-600/70 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+                      ? 'border-red-600/70 shadow-[0_0_20px_rgba(239,68,68,0.25)]'
                       : 'border-zinc-800'
                   }`}
                 >
@@ -301,7 +337,7 @@ export const DoctorView: React.FC = () => {
                         </span>
                         <span className="font-mono text-xs text-white font-bold">{disp.ambulanceCallsign}</span>
                         {isAssignedToThisDoctor && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-900 text-red-400 border border-red-800">
+                          <span className="text-[10px] font-mono text-red-400 border border-red-900 bg-red-950 px-1.5 py-0.5 rounded">
                             DIRECT REFERRAL
                           </span>
                         )}
@@ -353,47 +389,45 @@ export const DoctorView: React.FC = () => {
 
                   {disp.notes && (
                     <p className="text-xs text-zinc-300 bg-black p-2.5 rounded-xl border border-zinc-800 mb-3">
-                      <strong>Paramedic Field Notes:</strong> {disp.notes}
+                      <strong>Paramedic Notes:</strong> {disp.notes}
                     </p>
                   )}
 
-                  {/* Actions & Doctor Confirmation */}
+                  {/* Pre-arrival order buttons & confirmation */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-800">
-                    <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleOrderPreArrival(disp.id, 'STAT Trauma Blood Pack Reserve')}
-                        className="bg-zinc-900 hover:bg-zinc-800 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold border border-zinc-700 cursor-pointer hover:border-red-500 active:scale-95"
+                        className="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-xl text-xs font-bold border border-zinc-700 cursor-pointer hover:border-red-500 active:scale-95 flex items-center gap-1.5 transition-all"
                       >
-                        🩸 Reserve Blood
+                        <Droplet className="w-3.5 h-3.5 text-red-500" />
+                        <span>Reserve Blood</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleOrderPreArrival(disp.id, 'Emergency CT Scanner Reserve')}
-                        className="bg-zinc-900 hover:bg-zinc-800 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold border border-zinc-700 cursor-pointer hover:border-red-500 active:scale-95"
+                        className="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-xl text-xs font-bold border border-zinc-700 cursor-pointer hover:border-red-500 active:scale-95 flex items-center gap-1.5 transition-all"
                       >
-                        🔬 Reserve CT
+                        <Scan className="w-3.5 h-3.5 text-zinc-300" />
+                        <span>Reserve CT</span>
                       </button>
                     </div>
 
                     <div>
                       {isAcknowledged ? (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 text-white border border-red-500 font-bold text-xs">
-                          <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                          Doctor Confirmed Ready
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 text-white border border-red-500 font-bold text-xs">
+                          <Check className="w-4 h-4 text-red-500" />
+                          <span>Doctor Confirmed Ready</span>
                         </div>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => acknowledgePatientByDoctor(disp.id, currentDoctor.id)}
+                          onClick={() => handleAcknowledge(disp.id)}
                           className="bg-red-600 hover:bg-red-500 text-white font-black px-4 py-2 rounded-xl text-xs shadow-lg flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer uppercase tracking-wider btn-neon-red"
                         >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                          </svg>
-                          Confirm Doctor Ready
+                          <Check className="w-4 h-4" />
+                          <span>Confirm Doctor Ready</span>
                         </button>
                       )}
                     </div>

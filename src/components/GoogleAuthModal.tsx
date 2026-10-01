@@ -1,5 +1,6 @@
 import React from 'react';
 import { useHospital } from '../context/HospitalContext';
+import { ShieldCheck, X, LogOut, Check } from 'lucide-react';
 
 export const GoogleAuthModal: React.FC = () => {
   const { 
@@ -10,28 +11,33 @@ export const GoogleAuthModal: React.FC = () => {
     loginWithCredentials,
     userRole, 
     isGoogleAuthModalOpen, 
-    setIsGoogleAuthModalOpen 
+    setIsGoogleAuthModalOpen,
+    playClickTone 
   } = useHospital();
 
   if (!isGoogleAuthModalOpen) return null;
+
+  const handleClose = () => {
+    playClickTone();
+    setIsGoogleAuthModalOpen(false);
+  };
 
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
       <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5">
         <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-red-950 text-red-500 flex items-center justify-center border border-red-800">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+              <ShieldCheck className="w-4 h-4" />
             </div>
-            <h3 className="font-black text-lg text-white">Firebase Authentication</h3>
+            <h3 className="font-black text-base sm:text-lg text-white">Firebase Authentication</h3>
           </div>
           <button
-            onClick={() => setIsGoogleAuthModalOpen(false)}
-            className="text-zinc-400 hover:text-white font-bold text-lg cursor-pointer"
+            onClick={handleClose}
+            className="text-zinc-400 hover:text-white p-1 rounded-lg cursor-pointer"
+            aria-label="Close modal"
           >
-            ✕
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -61,10 +67,14 @@ export const GoogleAuthModal: React.FC = () => {
             </div>
 
             <button
-              onClick={logout}
-              className="w-full bg-zinc-900 hover:bg-zinc-800 text-red-400 hover:text-red-300 font-bold py-2.5 rounded-xl border border-zinc-700 text-xs transition-all cursor-pointer uppercase tracking-wider"
+              onClick={() => {
+                logout();
+                setIsGoogleAuthModalOpen(false);
+              }}
+              className="w-full bg-zinc-900 hover:bg-zinc-800 text-red-400 hover:text-red-300 font-bold py-2.5 rounded-xl border border-zinc-700 text-xs transition-all cursor-pointer uppercase tracking-wider flex items-center justify-center gap-2"
             >
-              Sign Out from Firebase
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out from Firebase</span>
             </button>
           </div>
         ) : (
@@ -76,10 +86,13 @@ export const GoogleAuthModal: React.FC = () => {
             {/* Google Sign In Button */}
             <button
               type="button"
-              onClick={() => handleGoogleSignIn(userRole)}
+              onClick={() => {
+                playClickTone();
+                handleGoogleSignIn(userRole);
+              }}
               className="w-full bg-white hover:bg-zinc-200 text-black font-bold py-3 px-4 rounded-2xl shadow-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] border border-zinc-200 cursor-pointer"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -101,7 +114,7 @@ export const GoogleAuthModal: React.FC = () => {
             </button>
 
             <div className="relative flex items-center justify-center my-3">
-              <span className="absolute inset-x-0 h-px bg-zinc-800"></span>
+              <span className="absolute inset-x-0 h-px bg-zinc-800" />
               <span className="relative bg-zinc-950 px-3 text-[10px] text-zinc-500 uppercase font-mono font-bold">
                 Or Quick Switch Role
               </span>
@@ -112,6 +125,7 @@ export const GoogleAuthModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
+                  playClickTone();
                   loginWithCredentials('management', 'admin', 'admin');
                   setIsGoogleAuthModalOpen(false);
                 }}
@@ -119,7 +133,7 @@ export const GoogleAuthModal: React.FC = () => {
               >
                 <div>
                   <span className="font-bold text-xs text-white block">Hospital Management (River City Sukkur)</span>
-                  <span className="text-[10px] text-zinc-400">admin / admin</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">admin / admin</span>
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded bg-red-950 text-red-400 font-bold border border-red-800">Select</span>
               </button>
@@ -127,6 +141,7 @@ export const GoogleAuthModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
+                  playClickTone();
                   loginAsGuest('ambulance');
                   setIsGoogleAuthModalOpen(false);
                 }}
@@ -134,7 +149,7 @@ export const GoogleAuthModal: React.FC = () => {
               >
                 <div>
                   <span className="font-bold text-xs text-white block">Sindh Rescue 1122 Ambulance</span>
-                  <span className="text-[10px] text-zinc-400">1-Tap Fast Entry</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">1-Tap Rapid Access</span>
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded bg-red-950 text-red-400 font-bold border border-red-800">Select</span>
               </button>
@@ -142,14 +157,15 @@ export const GoogleAuthModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
+                  playClickTone();
                   loginWithCredentials('doctor', 'doctor', 'doctor');
                   setIsGoogleAuthModalOpen(false);
                 }}
                 className="w-full p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-left flex items-center justify-between transition-all cursor-pointer"
               >
                 <div>
-                  <span className="font-bold text-xs text-white block">Dr. Tariq Soomro (On-Duty Surgeon)</span>
-                  <span className="text-[10px] text-zinc-400">doctor / doctor</span>
+                  <span className="font-bold text-xs text-white block">Dr. Tariq Soomro (Surgeon)</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">doctor / doctor</span>
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded bg-red-950 text-red-400 font-bold border border-red-800">Select</span>
               </button>
@@ -158,9 +174,7 @@ export const GoogleAuthModal: React.FC = () => {
         )}
 
         <div className="pt-3 border-t border-zinc-800 text-[11px] text-zinc-400 flex items-center gap-2">
-          <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
+          <ShieldCheck className="w-4 h-4 text-red-500 shrink-0" />
           <span>Firebase Project: <strong className="text-white font-mono">hospital-management-3b3f6</strong></span>
         </div>
       </div>

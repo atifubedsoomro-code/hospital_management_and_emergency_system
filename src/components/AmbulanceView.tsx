@@ -11,6 +11,20 @@ import {
   DispatchStatus
 } from '../types';
 import { evaluateHospitals } from '../services/routingAlgorithm';
+import { 
+  Ambulance, 
+  Zap, 
+  Navigation, 
+  CheckCircle2, 
+  Heart, 
+  ShieldAlert, 
+  MapPin, 
+  Clock, 
+  ArrowRight,
+  Flame,
+  Activity,
+  Wind
+} from 'lucide-react';
 
 export const AmbulanceView: React.FC = () => {
   const { 
@@ -21,7 +35,8 @@ export const AmbulanceView: React.FC = () => {
     updateDispatchStatus,
     moveAmbulanceTowardsTarget,
     selectedAmbulanceId,
-    setSelectedAmbulanceId
+    setSelectedAmbulanceId,
+    playClickTone
   } = useHospital();
 
   const [activeTab, setActiveTab] = useState<'intake' | 'active_transit'>('intake');
@@ -33,7 +48,7 @@ export const AmbulanceView: React.FC = () => {
   const [esiLevel, setEsiLevel] = useState<EsiLevel>(1);
   const [requiredRoom, setRequiredRoom] = useState<RoomType>('Cath Lab');
   const [requiredSpecialty, setRequiredSpecialty] = useState<Specialty>('Cardiology / Cath Lab');
-  const [notes, setNotes] = useState<string>('Patient picked up near Sukkur Bypass with crushing substernal chest pain. 12-lead ECG confirms acute anterior STEMI.');
+  const [notes, setNotes] = useState<string>('Patient picked up near Sukkur Bypass with crushing chest pain. 12-lead ECG confirms acute STEMI.');
 
   const [heartRate, setHeartRate] = useState<number>(118);
   const [bpSystolic, setBpSystolic] = useState<number>(86);
@@ -64,6 +79,7 @@ export const AmbulanceView: React.FC = () => {
   }, [currentAmbLat, currentAmbLng, requiredRoom, requiredSpecialty, hospitals, doctors]);
 
   const handleSelectConditionPreset = (cond: EmergencyCondition) => {
+    playClickTone();
     setCondition(cond);
     if (cond === 'Cardiac Arrest / STEMI') {
       setRequiredRoom('Cath Lab');
@@ -117,6 +133,7 @@ export const AmbulanceView: React.FC = () => {
 
   const handleIntakeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    playClickTone();
 
     const vitals: PatientVitals = {
       heartRate,
@@ -147,6 +164,7 @@ export const AmbulanceView: React.FC = () => {
   };
 
   const handleNextStatus = (currentStatus: DispatchStatus) => {
+    playClickTone();
     if (!currentDispatch) return;
     const flow: DispatchStatus[] = ['en_route_scene', 'on_scene', 'transporting', 'arrived_hospital', 'handover_completed'];
     const currentIndex = flow.indexOf(currentStatus);
@@ -157,18 +175,18 @@ export const AmbulanceView: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 sm:space-y-6">
-      {/* Top Header / Unit Bar with Framed Logo */}
+      {/* Top Header */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3">
           <HospitalLogoFrame size="md" withGlow={true} />
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-black text-white tracking-wide">AMBULANCE COCKPIT</h2>
-              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-950 text-red-400 border border-red-800 uppercase font-mono">
+              <span className="text-[10px] font-mono text-zinc-400 border border-zinc-800 bg-black px-1.5 py-0.5 rounded">
                 Sukkur Unit
               </span>
             </div>
-            <p className="text-xs text-zinc-400">Unit ID: <span className="font-mono text-white font-bold">{selectedAmbulanceId}</span> • GPS Telemetry Active</p>
+            <p className="text-xs text-zinc-400">Unit ID: <span className="font-mono text-white font-bold">{selectedAmbulanceId}</span> · GPS Active</p>
           </div>
         </div>
 
@@ -176,7 +194,10 @@ export const AmbulanceView: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
           <select
             value={selectedAmbulanceId}
-            onChange={(e) => setSelectedAmbulanceId(e.target.value)}
+            onChange={(e) => {
+              playClickTone();
+              setSelectedAmbulanceId(e.target.value);
+            }}
             className="bg-black border border-zinc-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-semibold focus:outline-none focus:border-red-500 cursor-pointer"
           >
             <option value="RESCUE-1122-SK04">Sindh Rescue 1122 (Unit 04 Sukkur)</option>
@@ -186,7 +207,10 @@ export const AmbulanceView: React.FC = () => {
 
           <div className="flex bg-black p-1 rounded-xl border border-zinc-800">
             <button
-              onClick={() => setActiveTab('intake')}
+              onClick={() => {
+                playClickTone();
+                setActiveTab('intake');
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'intake'
                   ? 'bg-red-600 text-white shadow-md font-black'
@@ -196,15 +220,18 @@ export const AmbulanceView: React.FC = () => {
               Rapid Intake
             </button>
             <button
-              onClick={() => setActiveTab('active_transit')}
+              onClick={() => {
+                playClickTone();
+                setActiveTab('active_transit');
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'active_transit'
                   ? 'bg-white text-black font-black shadow-md'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-              Live Transit {currentDispatch ? `(${currentDispatch.etaMinutes}m)` : ''}
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <span>Live Transit {currentDispatch ? `(${currentDispatch.etaMinutes}m)` : ''}</span>
             </button>
           </div>
         </div>
@@ -213,7 +240,7 @@ export const AmbulanceView: React.FC = () => {
       {activeTab === 'active_transit' && currentDispatch ? (
         <div className="space-y-4 sm:space-y-5">
           {/* Active Dispatch Card */}
-          <div className="bg-zinc-950 border border-red-600/50 rounded-3xl p-4 sm:p-5 shadow-2xl relative overflow-hidden neon-card-glow">
+          <div className="bg-zinc-950 border border-red-600/60 rounded-3xl p-4 sm:p-5 shadow-2xl relative overflow-hidden neon-card-glow">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-4 border-b border-zinc-800">
               <div>
                 <span className="text-[10px] font-bold tracking-widest uppercase text-red-500">ACTIVE EMERGENCY TRANSIT</span>
@@ -238,8 +265,8 @@ export const AmbulanceView: React.FC = () => {
               <div className="bg-black p-3 sm:p-3.5 rounded-2xl border border-zinc-800">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Destination Facility</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-900 text-white border border-zinc-700">
-                    Reserved: {currentDispatch.requiredRoom}
+                  <span className="text-[10px] font-mono text-white bg-zinc-900 border border-zinc-700 px-2 py-0.5 rounded">
+                    Room: {currentDispatch.requiredRoom}
                   </span>
                 </div>
                 <h4 className="font-bold text-sm sm:text-base text-white">
@@ -258,62 +285,60 @@ export const AmbulanceView: React.FC = () => {
                       ? 'bg-red-950 text-red-300 border border-red-700' 
                       : 'bg-zinc-900 text-zinc-400 border border-zinc-700'
                   }`}>
-                    {currentDispatch.doctorAcknowledged ? '✓ Doctor Ready' : '⏳ Awaiting Confirmation'}
+                    {currentDispatch.doctorAcknowledged ? 'Ready on floor' : 'Standby'}
                   </span>
                 </div>
                 <h4 className="font-bold text-sm sm:text-base text-white">
-                  {doctors.find((d) => d.id === currentDispatch.assignedDoctorId)?.name || 'Dr. Tariq Soomro'}
+                  {doctors.find((d) => d.id === currentDispatch.assignedDoctorId)?.name || 'On-Call Emergency Staff'}
                 </h4>
                 <p className="text-xs text-zinc-400">
-                  {currentDispatch.requiredSpecialty}
+                  {doctors.find((d) => d.id === currentDispatch.assignedDoctorId)?.specialty || currentDispatch.requiredSpecialty}
                 </p>
               </div>
             </div>
 
-            {/* Live Vitals Broadcast Bar */}
-            <div className="bg-black p-3 sm:p-3.5 rounded-2xl border border-zinc-800 mb-4 sm:mb-5">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Live Encrypted Patient Telemetry</span>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center font-mono">
-                <div className="bg-zinc-950 p-2 rounded-xl border border-zinc-800">
-                  <span className="text-[9px] text-zinc-400 block uppercase">Heart Rate</span>
-                  <span className="text-sm sm:text-base font-bold text-red-500">{currentDispatch.vitals.heartRate} bpm</span>
-                </div>
-                <div className="bg-zinc-950 p-2 rounded-xl border border-zinc-800">
-                  <span className="text-[9px] text-zinc-400 block uppercase">Blood Press.</span>
-                  <span className="text-sm sm:text-base font-bold text-white">
-                    {currentDispatch.vitals.bloodPressureSystolic}/{currentDispatch.vitals.bloodPressureDiastolic}
-                  </span>
-                </div>
-                <div className="bg-zinc-950 p-2 rounded-xl border border-zinc-800">
-                  <span className="text-[9px] text-zinc-400 block uppercase">Oxygen SpO2</span>
-                  <span className="text-sm sm:text-base font-bold text-white">{currentDispatch.vitals.oxygenSaturation}%</span>
-                </div>
-                <div className="bg-zinc-950 p-2 rounded-xl border border-zinc-800">
-                  <span className="text-[9px] text-zinc-400 block uppercase">Resp Rate</span>
-                  <span className="text-sm sm:text-base font-bold text-zinc-200">{currentDispatch.vitals.respiratoryRate}/m</span>
-                </div>
-                <div className="bg-zinc-950 p-2 rounded-xl border border-zinc-800">
-                  <span className="text-[9px] text-zinc-400 block uppercase">GCS Scale</span>
-                  <span className="text-sm sm:text-base font-bold text-white">{currentDispatch.vitals.gcs} / 15</span>
-                </div>
-                <div className="bg-zinc-950 p-2 rounded-xl border border-zinc-800">
-                  <span className="text-[9px] text-zinc-400 block uppercase">Temp</span>
-                  <span className="text-sm sm:text-base font-bold text-zinc-200">{currentDispatch.vitals.temperatureC}°C</span>
-                </div>
+            {/* Vitals strip */}
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 my-3 font-mono text-center text-xs">
+              <div className="bg-black p-2 rounded-xl border border-zinc-800">
+                <span className="text-[9px] text-zinc-500 block uppercase">HR</span>
+                <span className="font-bold text-red-500">{currentDispatch.vitals.heartRate} bpm</span>
+              </div>
+              <div className="bg-black p-2 rounded-xl border border-zinc-800">
+                <span className="text-[9px] text-zinc-500 block uppercase">BP</span>
+                <span className="font-bold text-white">
+                  {currentDispatch.vitals.bloodPressureSystolic}/{currentDispatch.vitals.bloodPressureDiastolic}
+                </span>
+              </div>
+              <div className="bg-black p-2 rounded-xl border border-zinc-800">
+                <span className="text-[9px] text-zinc-500 block uppercase">SpO2</span>
+                <span className="font-bold text-white">{currentDispatch.vitals.oxygenSaturation}%</span>
+              </div>
+              <div className="bg-black p-2 rounded-xl border border-zinc-800">
+                <span className="text-[9px] text-zinc-500 block uppercase">RR</span>
+                <span className="font-bold text-zinc-300">{currentDispatch.vitals.respiratoryRate}/m</span>
+              </div>
+              <div className="bg-black p-2 rounded-xl border border-zinc-800">
+                <span className="text-[9px] text-zinc-500 block uppercase">GCS</span>
+                <span className="font-bold text-white">{currentDispatch.vitals.gcs}</span>
+              </div>
+              <div className="bg-black p-2 rounded-xl border border-zinc-800">
+                <span className="text-[9px] text-zinc-500 block uppercase">Temp</span>
+                <span className="font-bold text-zinc-200">{currentDispatch.vitals.temperatureC}°C</span>
               </div>
             </div>
 
-            {/* Tactical Actions */}
+            {/* Actions */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-zinc-800">
               <button
                 type="button"
-                onClick={() => moveAmbulanceTowardsTarget(currentDispatch.id)}
-                className="bg-white hover:bg-zinc-200 text-black font-black text-xs px-3.5 py-2.5 rounded-xl shadow-lg flex items-center gap-2 transition-all active:scale-95 cursor-pointer uppercase btn-neon-white"
+                onClick={() => {
+                  playClickTone();
+                  moveAmbulanceTowardsTarget(currentDispatch.id);
+                }}
+                className="bg-white hover:bg-zinc-200 text-black font-black text-xs px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 transition-all active:scale-95 cursor-pointer uppercase btn-neon-white"
               >
-                <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                </svg>
-                Drive Closer (Update GPS)
+                <Navigation className="w-4 h-4 text-red-600" />
+                <span>Drive Closer (Update GPS)</span>
               </button>
 
               <button
@@ -321,10 +346,8 @@ export const AmbulanceView: React.FC = () => {
                 onClick={() => handleNextStatus(currentDispatch.status)}
                 className="bg-red-600 hover:bg-red-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-lg uppercase tracking-wide flex items-center gap-2 transition-all active:scale-95 cursor-pointer btn-neon-red"
               >
-                <span>Advance: {currentDispatch.status.replace('_', ' ')}</span>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                </svg>
+                <span>Advance: {currentDispatch.status.replace(/_/g, ' ')}</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -333,10 +356,10 @@ export const AmbulanceView: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs sm:text-sm font-bold text-zinc-300 flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
-                Sukkur Emergency Fast Path Map
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span>Sukkur Emergency Fast Path Navigation</span>
               </h3>
-              <span className="text-[11px] text-zinc-400">Target: {currentDispatch.requiredRoom}</span>
+              <span className="text-[11px] text-zinc-400 font-mono">Target: {currentDispatch.requiredRoom}</span>
             </div>
             <HospitalMap
               hospitals={hospitals}
@@ -347,40 +370,43 @@ export const AmbulanceView: React.FC = () => {
           </div>
         </div>
       ) : (
-        /* RAPID PATIENT INTAKE */
+        /* RAPID PATIENT INTAKE FORM */
         <form onSubmit={handleIntakeSubmit} className="space-y-5 sm:space-y-6">
-          {/* Quick Presets */}
+          {/* Quick Condition Presets */}
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 sm:p-4 shadow-lg">
             <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2.5">
               1-Tap Critical Emergency Presets (Acuity Protocols)
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
-                { label: 'Cardiac STEMI', icon: '❤️', cond: 'Cardiac Arrest / STEMI' },
-                { label: 'Severe Trauma', icon: '🩸', cond: 'Severe Trauma / Hemorrhage' },
-                { label: 'Acute Stroke', icon: '🧠', cond: 'Acute Stroke / CVA' },
-                { label: 'Respiratory ARDS', icon: '🫁', cond: 'Respiratory Failure / ARDS' },
-                { label: 'Pediatric Code', icon: '👶', cond: 'Pediatric Severe Distress' },
-                { label: 'Sepsis Shock', icon: '⚠️', cond: 'Sepsis / Septic Shock' },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => handleSelectConditionPreset(item.cond as EmergencyCondition)}
-                  className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center gap-2 cursor-pointer active:scale-95 ${
-                    condition === item.cond
-                      ? 'bg-red-950 border-red-500 text-white shadow-[0_0_12px_rgba(239,68,68,0.5)]'
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white'
-                  }`}
-                >
-                  <span className="text-base">{item.icon}</span>
-                  <span className="truncate">{item.label}</span>
-                </button>
-              ))}
+                { label: 'Cardiac STEMI', icon: Heart, cond: 'Cardiac Arrest / STEMI' },
+                { label: 'Severe Trauma', icon: Activity, cond: 'Severe Trauma / Hemorrhage' },
+                { label: 'Acute Stroke', icon: Zap, cond: 'Acute Stroke / CVA' },
+                { label: 'Respiratory ARDS', icon: Wind, cond: 'Respiratory Failure / ARDS' },
+                { label: 'Pediatric Code', icon: Flame, cond: 'Pediatric Severe Distress' },
+                { label: 'Sepsis Shock', icon: ShieldAlert, cond: 'Sepsis / Septic Shock' },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => handleSelectConditionPreset(item.cond as EmergencyCondition)}
+                    className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center gap-2 cursor-pointer active:scale-95 ${
+                      condition === item.cond
+                        ? 'bg-red-950 border-red-500 text-white shadow-[0_0_12px_rgba(239,68,68,0.5)]'
+                        : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 text-red-500 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Patient Details & Vitals */}
+          {/* Demographics & Vitals */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 sm:p-4 shadow-lg space-y-3">
               <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
@@ -400,7 +426,10 @@ export const AmbulanceView: React.FC = () => {
                   />
                   <button
                     type="button"
-                    onClick={() => setPatientName(`Trauma Case #${Math.floor(100 + Math.random() * 900)}`)}
+                    onClick={() => {
+                      playClickTone();
+                      setPatientName(`Trauma Case #${Math.floor(100 + Math.random() * 900)}`);
+                    }}
                     className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-3 py-2 rounded-xl text-xs font-bold border border-zinc-700 whitespace-nowrap cursor-pointer"
                   >
                     Unknown
@@ -442,7 +471,10 @@ export const AmbulanceView: React.FC = () => {
                     <button
                       key={lvl}
                       type="button"
-                      onClick={() => setEsiLevel(lvl)}
+                      onClick={() => {
+                        playClickTone();
+                        setEsiLevel(lvl);
+                      }}
                       className={`py-2 rounded-xl text-xs font-black transition-all border cursor-pointer ${
                         esiLevel === lvl
                           ? 'bg-red-600 border-red-500 text-white shadow-lg'
@@ -490,7 +522,7 @@ export const AmbulanceView: React.FC = () => {
               </div>
             </div>
 
-            {/* Vitals Telemetry Inputs */}
+            {/* Vitals Inputs */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 sm:p-4 shadow-lg space-y-3">
               <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
                 Immediate Vitals Telemetry
@@ -574,17 +606,17 @@ export const AmbulanceView: React.FC = () => {
             </div>
           </div>
 
-          {/* SYSTEM ALGORITHM: SMART HOSPITAL ROUTING RANKING */}
+          {/* Facility Routing Ranking */}
           <div className="bg-zinc-950 border border-red-600/40 rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
                 <h3 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
                   Facility Routing Algorithm (Sukkur Network)
                 </h3>
               </div>
               <span className="text-xs font-mono text-red-400">
-                Live Proximity + {requiredRoom} + On-Duty Specialists
+                Proximity + {requiredRoom} + On-Duty Specialists
               </span>
             </div>
 
@@ -596,7 +628,10 @@ export const AmbulanceView: React.FC = () => {
                 return (
                   <div
                     key={rec.hospital.id}
-                    onClick={() => setSelectedHospitalId(rec.hospital.id)}
+                    onClick={() => {
+                      playClickTone();
+                      setSelectedHospitalId(rec.hospital.id);
+                    }}
                     className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-zinc-900 border-red-500 shadow-xl shadow-red-950/40 ring-1 ring-red-500'
@@ -614,13 +649,13 @@ export const AmbulanceView: React.FC = () => {
                           <h4 className="font-bold text-white text-sm flex items-center gap-2">
                             {rec.hospital.name}
                             {isTop && (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-950 text-red-400 border border-red-800 uppercase">
-                                ★ Best Clinical Match
+                              <span className="text-[10px] font-mono text-red-400 border border-red-900 bg-red-950 px-1.5 py-0.5 rounded">
+                                Best Match
                               </span>
                             )}
                           </h4>
                           <span className="text-xs text-zinc-400 font-mono">
-                            {rec.distanceKm} km • {rec.etaMinutes} mins ETA
+                            {rec.distanceKm} km · {rec.etaMinutes} mins ETA
                           </span>
                         </div>
                       </div>
@@ -638,15 +673,18 @@ export const AmbulanceView: React.FC = () => {
                           type="radio"
                           name="destinationHospital"
                           checked={isSelected}
-                          onChange={() => setSelectedHospitalId(rec.hospital.id)}
-                          className="w-5 h-5 text-red-600 focus:ring-red-500 bg-black border-zinc-700 cursor-pointer"
+                          onChange={() => {
+                            playClickTone();
+                            setSelectedHospitalId(rec.hospital.id);
+                          }}
+                          className="w-4 h-4 text-red-600 focus:ring-red-500 bg-black border-zinc-700 cursor-pointer"
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-2 border-t border-zinc-800 mt-2">
                       <div className="flex items-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${rec.roomAvailable ? 'bg-white' : 'bg-red-600'}`}></span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${rec.roomAvailable ? 'bg-white' : 'bg-red-600'}`} />
                         <span className="text-zinc-300">
                           {requiredRoom}: <strong className={rec.roomAvailable ? 'text-white' : 'text-red-500'}>
                             {rec.roomAvailable ? `${rec.availableRoomCount} Open & Ready` : 'Full / Unavailable'}
@@ -654,7 +692,7 @@ export const AmbulanceView: React.FC = () => {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${rec.hasSpecialist ? 'bg-white' : 'bg-red-600'}`}></span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${rec.hasSpecialist ? 'bg-white' : 'bg-red-600'}`} />
                         <span className="text-zinc-300">
                           Specialist: <strong className={rec.hasSpecialist ? 'text-white' : 'text-zinc-400'}>
                             {rec.hasSpecialist ? `${rec.availableDoctors[0].name} (On-Duty)` : 'General Duty Staff on Floor'}
@@ -663,7 +701,7 @@ export const AmbulanceView: React.FC = () => {
                       </div>
                     </div>
 
-                    <p className="text-xs text-zinc-300 italic mt-2 bg-black p-2 rounded-xl border border-zinc-800">
+                    <p className="text-xs text-zinc-400 italic mt-2 bg-black p-2 rounded-xl border border-zinc-800">
                       💡 {rec.recommendationReason}
                     </p>
                   </div>
@@ -672,16 +710,14 @@ export const AmbulanceView: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Button */}
+          {/* Submit Action */}
           <div className="pt-2">
             <button
               type="submit"
               className="w-full bg-red-600 hover:bg-red-500 text-white font-black text-sm sm:text-base py-4 rounded-2xl shadow-[0_0_20px_rgba(239,68,68,0.7)] flex items-center justify-center gap-2 tracking-wide uppercase transition-all active:scale-[0.99] cursor-pointer btn-neon-red"
             >
-              <svg className="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Initiate Emergency Dispatch & Alert Hospital
+              <Zap className="w-5 h-5 text-white" />
+              <span>Initiate Emergency Dispatch & Alert Hospital</span>
             </button>
           </div>
         </form>

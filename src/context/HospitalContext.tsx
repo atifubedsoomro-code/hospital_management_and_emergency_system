@@ -51,6 +51,7 @@ interface HospitalContextType {
   setActiveHospitalId: (id: string) => void;
   isMuted: boolean;
   toggleMute: () => void;
+  playClickTone: () => void;
   
   // Authentication Actions
   loginAsGuest: (role: 'ambulance' | 'customer') => void;
@@ -287,6 +288,10 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     soundEffects.setMuted(next);
   };
 
+  const playClickTone = useCallback(() => {
+    soundEffects.playClickTone();
+  }, []);
+
   const loginAsGuest = (role: 'ambulance' | 'customer') => {
     setUserRole(role);
     setIsAuthenticated(true);
@@ -296,7 +301,7 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       setDemoUserEmail('citizen.sukkur@emergency.pk');
     }
-    soundEffects.playSuccessTone();
+    soundEffects.playLoginTone();
   };
 
   const loginWithCredentials = (role: 'doctor' | 'management', username: string, pass: string) => {
@@ -309,7 +314,7 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setActiveHospitalId('hosp-1');
       setDemoUserEmail('admin@rivercity-sukkur.pk');
       setIsAuthenticated(true);
-      soundEffects.playSuccessTone();
+      soundEffects.playLoginTone();
       return { success: true };
     }
 
@@ -319,7 +324,7 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setSelectedDoctorId('doc-1');
       setDemoUserEmail('dr.tariq.soomro@rivercity-sukkur.pk');
       setIsAuthenticated(true);
-      soundEffects.playSuccessTone();
+      soundEffects.playLoginTone();
       return { success: true };
     }
 
@@ -344,11 +349,15 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const logout = async () => {
-    await logOut();
+    soundEffects.playLogoutTone();
+    try {
+      await logOut();
+    } catch (e) {
+      console.warn('Logout notice:', e);
+    }
     setCurrentUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem(LOCAL_STORAGE_KEY_AUTH);
-    soundEffects.playSuccessTone();
   };
 
   const handleGoogleSignIn = async (role?: UserRole) => {
@@ -361,7 +370,7 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       setIsAuthenticated(true);
       setIsGoogleAuthModalOpen(false);
-      soundEffects.playSuccessTone();
+      soundEffects.playLoginTone();
     }
   };
 
@@ -759,6 +768,7 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setActiveHospitalId,
         isMuted,
         toggleMute,
+        playClickTone,
         loginAsGuest,
         loginWithCredentials,
         logout,

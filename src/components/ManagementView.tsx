@@ -4,6 +4,25 @@ import { HospitalMap } from './HospitalMap';
 import { HospitalLogoFrame } from './HospitalLogoFrame';
 import { DoctorAvatar } from './DoctorAvatar';
 import { DoctorStatus } from '../types';
+import { 
+  Building2, 
+  Plus, 
+  Minus, 
+  Megaphone, 
+  ShieldAlert, 
+  ShieldCheck, 
+  CheckCircle2, 
+  Bed, 
+  Activity, 
+  HeartPulse, 
+  Wind, 
+  Droplet, 
+  Filter, 
+  X, 
+  Clock, 
+  MapPin,
+  Radio
+} from 'lucide-react';
 
 export const ManagementView: React.FC = () => {
   const { 
@@ -15,7 +34,8 @@ export const ManagementView: React.FC = () => {
     updateHospitalAssets,
     updateDoctorStatus,
     broadcastHospitalAlert,
-    updateDispatchStatus
+    updateDispatchStatus,
+    playClickTone
   } = useHospital();
 
   const currentHospital = hospitals.find((h) => h.id === activeHospitalId) || hospitals[0];
@@ -23,8 +43,9 @@ export const ManagementView: React.FC = () => {
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('all');
   const [showBroadcastModal, setShowBroadcastModal] = useState<boolean>(false);
   const [broadcastTitle, setBroadcastTitle] = useState<string>('HIGHWAY COLLISION PROTOCOL: PHASE 1');
-  const [broadcastMessage, setBroadcastMessage] = useState<string>('River City Hospital Sukkur and Civil Hospital trauma units clear standby bays. Multi-casualty intake expected.');
+  const [broadcastMessage, setBroadcastMessage] = useState<string>('River City Hospital Sukkur trauma unit clear standby bays. Multi-casualty intake expected.');
   const [broadcastUrgency, setBroadcastUrgency] = useState<'critical' | 'high' | 'normal'>('critical');
+  const [isBroadcasting, setIsBroadcasting] = useState<boolean>(false);
 
   const inboundDispatches = dispatches.filter((d) => d.status !== 'handover_completed');
 
@@ -35,19 +56,34 @@ export const ManagementView: React.FC = () => {
   });
 
   const handleAssetChange = (field: keyof typeof currentHospital.assets, delta: number) => {
+    playClickTone();
     const currentVal = Number(currentHospital.assets[field]) || 0;
     const nextVal = Math.max(0, currentVal + delta);
     updateHospitalAssets(currentHospital.id, { [field]: nextVal });
   };
 
   const handleToggleDivert = () => {
+    playClickTone();
     updateHospitalAssets(currentHospital.id, {}, !currentHospital.divertStatus);
   };
 
   const handleSendBroadcast = (e: React.FormEvent) => {
     e.preventDefault();
+    playClickTone();
+    setIsBroadcasting(true);
     broadcastHospitalAlert(broadcastTitle, broadcastMessage, broadcastUrgency, currentHospital.id);
+    setIsBroadcasting(false);
     setShowBroadcastModal(false);
+  };
+
+  const handleStatusChange = (docId: string, status: DoctorStatus) => {
+    playClickTone();
+    updateDoctorStatus(docId, status);
+  };
+
+  const handleAdmitPatient = (dispId: string) => {
+    playClickTone();
+    updateDispatchStatus(dispId, 'handover_completed');
   };
 
   const icuOccupancyPercent = Math.round(
@@ -56,21 +92,24 @@ export const ManagementView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Facility Switcher & Urgent Action Bar with Framed Logo */}
+      {/* Top Command Bar */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <HospitalLogoFrame size="md" withGlow={true} />
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-950 text-red-400 border border-red-800 uppercase tracking-wider font-mono">
-                Executive Command Center
-              </span>
-              <span className="text-xs text-zinc-400 font-mono hidden sm:inline">River City Sukkur</span>
+            <div className="flex items-center gap-2 mb-1 text-xs text-zinc-400">
+              <span className="font-bold text-white uppercase tracking-wider">Executive Command Center</span>
+              <span aria-hidden="true" className="text-zinc-600">·</span>
+              <span className="font-mono">River City Sukkur</span>
             </div>
+            
             <div className="flex flex-wrap items-center gap-2.5">
               <select
                 value={activeHospitalId}
-                onChange={(e) => setActiveHospitalId(e.target.value)}
+                onChange={(e) => {
+                  playClickTone();
+                  setActiveHospitalId(e.target.value);
+                }}
                 className="bg-black border border-zinc-700 rounded-xl px-3 py-1.5 sm:py-2 text-sm sm:text-base font-black text-white focus:outline-none focus:border-red-500 cursor-pointer"
               >
                 {hospitals.map((h) => (
@@ -80,25 +119,36 @@ export const ManagementView: React.FC = () => {
                 ))}
               </select>
 
-              <span className={`px-2.5 py-1 rounded-xl text-xs font-bold border uppercase ${
+              <div className={`px-2.5 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 uppercase ${
                 currentHospital.divertStatus
                   ? 'bg-red-950 text-red-400 border-red-700 animate-pulse'
                   : 'bg-zinc-900 text-white border-zinc-700'
               }`}>
-                {currentHospital.divertStatus ? '⚠️ Divert Active' : '✓ Receiving Inbound'}
-              </span>
+                {currentHospital.divertStatus ? (
+                  <>
+                    <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+                    <span>Divert Active</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-red-500" />
+                    <span>Receiving Inbound</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={handleToggleDivert}
-            className={`flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-black border transition-all cursor-pointer uppercase tracking-wider ${
+            className={`flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-95 ${
               currentHospital.divertStatus
-                ? 'bg-white hover:bg-zinc-200 text-black border-white'
-                : 'bg-red-950 hover:bg-red-900 text-red-300 hover:text-white border-red-700'
+                ? 'bg-white hover:bg-zinc-200 text-black border-white shadow-md'
+                : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border-zinc-700'
             }`}
           >
             {currentHospital.divertStatus ? 'Resume Intake' : 'Activate Divert'}
@@ -106,226 +156,271 @@ export const ManagementView: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setShowBroadcastModal(true)}
-            className="flex-1 sm:flex-none bg-red-600 hover:bg-red-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow-[0_0_15px_rgba(239,68,68,0.7)] flex items-center justify-center gap-1.5 transition-all cursor-pointer uppercase tracking-wider btn-neon-red"
+            onClick={() => {
+              playClickTone();
+              setShowBroadcastModal(true);
+            }}
+            className="flex-1 sm:flex-none bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-[0_0_15px_rgba(239,68,68,0.7)] flex items-center justify-center gap-1.5 transition-all cursor-pointer uppercase tracking-wider btn-neon-red active:scale-95"
           >
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-            </svg>
+            <Megaphone className="w-3.5 h-3.5" />
             <span>Broadcast Alert</span>
           </button>
         </div>
       </div>
 
-      {/* Asset Management & Capacity Gauges */}
+      {/* Facility Assets Allocation */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs sm:text-sm font-bold text-zinc-300 flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-            Facility Assets & Critical Resource Allocation ({currentHospital.name})
+            <span className="w-2 h-2 rounded-full bg-red-500" />
+            <span>Critical Assets & Bed Allocation ({currentHospital.name})</span>
           </h3>
-          <span className="text-[11px] text-zinc-400 font-mono">Synced to Firestore</span>
+          <span className="text-[11px] text-zinc-500 font-mono">Synced to Firestore</span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {/* ICU Beds */}
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3 shadow-lg relative overflow-hidden">
-            <div className="flex justify-between items-start mb-1.5">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">ICU Beds</span>
-              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                currentHospital.assets.icuAvailable > 1 ? 'bg-zinc-900 text-white border border-zinc-700' : 'bg-red-950 text-red-400 border border-red-800'
-              }`}>
-                {icuOccupancyPercent}% Full
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-1">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <Bed className="w-3.5 h-3.5 text-red-500" />
+                <span>ICU Beds</span>
               </span>
+              <span className="text-[10px] text-zinc-400 font-mono">{icuOccupancyPercent}% Full</span>
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-white mb-2">
+            <div className="text-2xl font-black font-mono text-white my-1">
               <span className={currentHospital.assets.icuAvailable > 0 ? 'text-white' : 'text-red-500'}>
                 {currentHospital.assets.icuAvailable}
               </span>
               <span className="text-xs text-zinc-500 font-normal"> / {currentHospital.assets.icuTotal}</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 pt-1">
               <button
+                type="button"
                 onClick={() => handleAssetChange('icuAvailable', -1)}
-                className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-sm flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95"
-                title="Occupy bed"
+                className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95 transition-all"
+                title="Occupy ICU bed"
+                aria-label="Occupy ICU bed"
               >
-                -
+                <Minus className="w-3.5 h-3.5" />
               </button>
               <button
+                type="button"
                 onClick={() => handleAssetChange('icuAvailable', 1)}
-                className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-sm flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95"
-                title="Free up bed"
+                className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95 transition-all"
+                title="Free up ICU bed"
+                aria-label="Free up ICU bed"
               >
-                +
+                <Plus className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[10px] text-zinc-400 ml-1">Open</span>
+              <span className="text-[10px] text-zinc-400 ml-auto">Free</span>
             </div>
           </div>
 
           {/* Trauma Bays */}
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3 shadow-lg">
-            <div className="flex justify-between items-start mb-1.5">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Trauma Bays</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800">
-                Resus
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-1">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <Activity className="w-3.5 h-3.5 text-red-500" />
+                <span>Trauma Bays</span>
               </span>
+              <span className="text-[10px] text-zinc-400 font-mono">Resus</span>
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-red-400 mb-2">
+            <div className="text-2xl font-black font-mono text-red-400 my-1">
               {currentHospital.assets.traumaBaysAvailable}
               <span className="text-xs text-zinc-500 font-normal"> / {currentHospital.assets.traumaBaysTotal}</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 pt-1">
               <button
+                type="button"
                 onClick={() => handleAssetChange('traumaBaysAvailable', -1)}
-                className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-sm flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95"
+                className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95 transition-all"
+                title="Occupy trauma bay"
+                aria-label="Occupy trauma bay"
               >
-                -
+                <Minus className="w-3.5 h-3.5" />
               </button>
               <button
+                type="button"
                 onClick={() => handleAssetChange('traumaBaysAvailable', 1)}
-                className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-sm flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95"
+                className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95 transition-all"
+                title="Free up trauma bay"
+                aria-label="Free up trauma bay"
               >
-                +
+                <Plus className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[10px] text-zinc-400 ml-1">Bays</span>
+              <span className="text-[10px] text-zinc-400 ml-auto">Bays</span>
             </div>
           </div>
 
           {/* Cath Lab */}
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3 shadow-lg">
-            <div className="flex justify-between items-start mb-1.5">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Cath Lab</span>
-              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                currentHospital.assets.cathLabAvailable ? 'bg-zinc-900 text-white border border-zinc-700' : 'bg-red-950 text-red-400 border border-red-800'
-              }`}>
-                {currentHospital.assets.cathLabAvailable ? 'Active' : 'Down'}
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-1">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <HeartPulse className="w-3.5 h-3.5 text-red-500" />
+                <span>Cath Lab</span>
               </span>
+              <span className="text-[10px] text-zinc-400 font-mono">STEMI</span>
             </div>
-            <div className="text-sm font-black text-white mt-1 mb-2">
-              {currentHospital.assets.cathLabAvailable ? 'STEMI Ready' : 'Offline'}
+            <div className="text-xl font-black font-mono text-white my-1">
+              {currentHospital.assets.cathLabAvailable ? (
+                <span className="text-white">Open</span>
+              ) : (
+                <span className="text-red-500">In-Use</span>
+              )}
             </div>
-            <button
-              onClick={() => updateHospitalAssets(currentHospital.id, { cathLabAvailable: !currentHospital.assets.cathLabAvailable })}
-              className="w-full py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] font-bold border border-zinc-700 cursor-pointer hover:border-red-500"
-            >
-              Toggle
-            </button>
+            <div className="flex items-center gap-1.5 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  playClickTone();
+                  updateHospitalAssets(currentHospital.id, { cathLabAvailable: !currentHospital.assets.cathLabAvailable });
+                }}
+                className={`w-full py-1 px-2 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                  currentHospital.assets.cathLabAvailable
+                    ? 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500'
+                    : 'bg-red-600 border-red-500 text-white'
+                }`}
+              >
+                {currentHospital.assets.cathLabAvailable ? 'Mark In-Use' : 'Mark Open'}
+              </button>
+            </div>
           </div>
 
           {/* Ventilators */}
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3 shadow-lg">
-            <div className="flex justify-between items-start mb-1.5">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Ventilators</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-700">
-                Critical
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-1">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <Wind className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Ventilators</span>
               </span>
+              <span className="text-[10px] text-zinc-400 font-mono">Life</span>
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-white mb-2">
+            <div className="text-2xl font-black font-mono text-white my-1">
               {currentHospital.assets.ventilatorsAvailable}
-              <span className="text-xs text-zinc-500 font-normal"> Free</span>
+              <span className="text-xs text-zinc-500 font-normal"> Units</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 pt-1">
               <button
+                type="button"
                 onClick={() => handleAssetChange('ventilatorsAvailable', -1)}
-                className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-sm flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95"
+                className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95 transition-all"
+                title="Deploy ventilator"
+                aria-label="Deploy ventilator"
               >
-                -
+                <Minus className="w-3.5 h-3.5" />
               </button>
               <button
+                type="button"
                 onClick={() => handleAssetChange('ventilatorsAvailable', 1)}
-                className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-sm flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95"
+                className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95 transition-all"
+                title="Free ventilator"
+                aria-label="Free ventilator"
               >
-                +
+                <Plus className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[10px] text-zinc-400 ml-1">Units</span>
+              <span className="text-[10px] text-zinc-400 ml-auto">Units</span>
             </div>
           </div>
 
-          {/* Blood Units */}
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3 shadow-lg">
-            <div className="flex justify-between items-start mb-1.5">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Blood (O-)</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800">
-                Universal
+          {/* O-Neg Blood */}
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-1">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <Droplet className="w-3.5 h-3.5 text-red-500" />
+                <span>O-Neg Blood</span>
               </span>
+              <span className="text-[10px] text-red-400 font-mono">Bank</span>
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-red-500 mb-2">
+            <div className="text-2xl font-black font-mono text-red-500 my-1">
               {currentHospital.assets.bloodUnitsO_Neg}
-              <span className="text-xs text-zinc-500 font-normal"> Packs</span>
+              <span className="text-xs text-zinc-500 font-normal"> Units</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 pt-1">
               <button
-                onClick={() => handleAssetChange('bloodUnitsO_Neg', -2)}
-                className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-sm flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95"
+                type="button"
+                onClick={() => handleAssetChange('bloodUnitsO_Neg', -1)}
+                className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95 transition-all"
+                title="Use blood unit"
+                aria-label="Use blood unit"
               >
-                -2
+                <Minus className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => handleAssetChange('bloodUnitsO_Neg', 2)}
-                className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-sm flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95"
+                type="button"
+                onClick={() => handleAssetChange('bloodUnitsO_Neg', 1)}
+                className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95 transition-all"
+                title="Add blood unit"
+                aria-label="Add blood unit"
               >
-                +2
+                <Plus className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[10px] text-zinc-400 ml-1">Packs</span>
+              <span className="text-[10px] text-zinc-400 ml-auto">Packs</span>
             </div>
           </div>
 
-          {/* General Available Beds */}
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3 shadow-lg">
-            <div className="flex justify-between items-start mb-1.5">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">General ER</span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-zinc-900 text-white border border-zinc-700">
-                Floor
+          {/* General ER Beds */}
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 shadow-lg flex flex-col justify-between">
+            <div className="flex justify-between items-start mb-1">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+                <Bed className="w-3.5 h-3.5 text-zinc-400" />
+                <span>General ER</span>
               </span>
+              <span className="text-[10px] text-zinc-400 font-mono">Floor</span>
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-white mb-2">
+            <div className="text-2xl font-black font-mono text-white my-1">
               {currentHospital.assets.availableBeds}
               <span className="text-xs text-zinc-500 font-normal"> / {currentHospital.assets.totalBeds}</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 pt-1">
               <button
+                type="button"
                 onClick={() => handleAssetChange('availableBeds', -1)}
-                className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-sm flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95"
+                className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95 transition-all"
+                title="Occupy general bed"
+                aria-label="Occupy general bed"
               >
-                -
+                <Minus className="w-3.5 h-3.5" />
               </button>
               <button
+                type="button"
                 onClick={() => handleAssetChange('availableBeds', 1)}
-                className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-sm flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95"
+                className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white flex items-center justify-center border border-zinc-700 cursor-pointer active:scale-95 transition-all"
+                title="Free general bed"
+                aria-label="Free general bed"
               >
-                +
+                <Plus className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[10px] text-zinc-400 ml-1">Beds</span>
+              <span className="text-[10px] text-zinc-400 ml-auto">Beds</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Network Tactical Map View */}
+      {/* Network Tactical Map */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs sm:text-sm font-bold text-zinc-300 flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
-            Sukkur Metropolitan Hospitalization & Ambulance Network Map
+            <Radio className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+            <span>Sukkur Emergency Network Map & Live GPS Feeds</span>
           </h3>
-          <span className="text-[11px] text-zinc-400">GPS Live Telemetry</span>
+          <span className="text-[11px] text-zinc-400 font-mono">Real-Time Radar</span>
         </div>
         <HospitalMap
           hospitals={hospitals}
           dispatches={dispatches}
-          heightClass="h-[320px] sm:h-[400px]"
+          heightClass="h-[300px] sm:h-[380px]"
         />
       </div>
 
-      {/* Active Inbound Dispatches (Responsive: Cards on Mobile, Table on Desktop) */}
+      {/* Active Inbound Dispatches */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-4 sm:p-5 shadow-xl">
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800">
           <div>
             <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
               Incoming Ambulance Intakes ({inboundDispatches.length})
             </h3>
-            <p className="text-xs text-zinc-400">Synchronized triage data and room reservations saved in Firestore</p>
+            <p className="text-xs text-zinc-400">Live triage status and pre-arrival bed allocations</p>
           </div>
         </div>
 
@@ -362,71 +457,66 @@ export const ManagementView: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-[11px] bg-zinc-950 p-2 rounded-xl border border-zinc-800">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-2 border-t border-zinc-800 text-zinc-300">
                       <div>
-                        <span className="text-zinc-500 block">Unit:</span>
-                        <span className="text-white font-mono">{disp.ambulanceCallsign}</span>
+                        <span>Destination: </span>
+                        <strong className="text-white">{targetHosp?.shortName || 'Target Hosp'}</strong>
+                        <span className="text-zinc-500 font-mono ml-1">({disp.requiredRoom})</span>
                       </div>
+
                       <div>
-                        <span className="text-zinc-500 block">Reserved Room:</span>
-                        <span className="text-red-400 font-bold">{disp.requiredRoom}</span>
-                      </div>
-                      <div>
-                        <span className="text-zinc-500 block">Hospital:</span>
-                        <span className="text-zinc-300">{targetHosp?.shortName || 'Target Hosp'}</span>
-                      </div>
-                      <div>
-                        <span className="text-zinc-500 block">Doctor:</span>
-                        <span className="text-zinc-300">{assignedDoc?.name || 'On-Call'}</span>
+                        {assignedDoc ? (
+                          <span className="text-zinc-300">
+                            Doc: <strong className="text-white">{assignedDoc.name.split(',')[0]}</strong>
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400">On-Call Staff</span>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
-                      <span className="text-[10px] text-zinc-400 font-mono">
-                        Status: <strong className="text-white uppercase">{disp.status.replace('_', ' ')}</strong>
+                      <span className={`text-[10px] font-bold ${
+                        disp.doctorAcknowledged ? 'text-red-400' : 'text-zinc-400'
+                      }`}>
+                        {disp.doctorAcknowledged ? '✓ Doctor Confirmed' : '⏳ Awaiting doc'}
                       </span>
-                      {disp.status !== 'handover_completed' && (
-                        <button
-                          type="button"
-                          onClick={() => updateDispatchStatus(disp.id, 'handover_completed')}
-                          className="bg-red-600 hover:bg-red-500 text-white font-black px-3 py-1.5 rounded-xl text-xs uppercase tracking-wider cursor-pointer btn-neon-red"
-                        >
-                          Admit Patient
-                        </button>
-                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleAdmitPatient(disp.id)}
+                        className="bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow cursor-pointer uppercase tracking-wider flex items-center gap-1 active:scale-95 btn-neon-red"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Admit Patient</span>
+                      </button>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Desktop View: Full Data Table */}
+            {/* Desktop View: Tabular */}
             <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="text-[10px] font-bold uppercase text-zinc-400 border-b border-zinc-800">
-                    <th className="py-2.5 px-3">Ambulance Unit</th>
+              <table className="w-full text-left text-xs text-zinc-300">
+                <thead className="bg-black text-zinc-400 uppercase font-mono text-[10px] border-b border-zinc-800">
+                  <tr>
                     <th className="py-2.5 px-3">Patient / Acuity</th>
                     <th className="py-2.5 px-3">Condition</th>
-                    <th className="py-2.5 px-3">Target Hospital</th>
-                    <th className="py-2.5 px-3">Reserved Room</th>
-                    <th className="py-2.5 px-3">Doctor Standby</th>
+                    <th className="py-2.5 px-3">Target Facility</th>
+                    <th className="py-2.5 px-3">Room Required</th>
+                    <th className="py-2.5 px-3">Assigned Specialist</th>
                     <th className="py-2.5 px-3 text-right">ETA</th>
-                    <th className="py-2.5 px-3 text-right">Actions</th>
+                    <th className="py-2.5 px-3 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800/80 font-medium">
+                <tbody className="divide-y divide-zinc-900 font-medium">
                   {inboundDispatches.map((disp) => {
                     const targetHosp = hospitals.find((h) => h.id === disp.targetHospitalId);
                     const assignedDoc = doctors.find((d) => d.id === disp.assignedDoctorId);
 
                     return (
-                      <tr key={disp.id} className="hover:bg-zinc-900/60 transition-colors">
-                        <td className="py-3 px-3">
-                          <span className="font-mono font-bold text-white block">{disp.ambulanceCallsign}</span>
-                          <span className="text-[10px] text-zinc-500 font-mono">{disp.driverName}</span>
-                        </td>
-
+                      <tr key={disp.id} className="hover:bg-black/60 transition-colors">
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-1.5">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
@@ -447,14 +537,14 @@ export const ManagementView: React.FC = () => {
                         </td>
 
                         <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded bg-black text-white font-mono text-[11px] border border-zinc-800">
+                          <span className="font-mono text-zinc-300">
                             {disp.requiredRoom}
                           </span>
                         </td>
 
                         <td className="py-3 px-3">
                           <span className="text-white block font-semibold">{assignedDoc?.name || 'On-Call'}</span>
-                          <span className={`text-[10px] ${disp.doctorAcknowledged ? 'text-red-400 font-bold' : 'text-zinc-400'}`}>
+                          <span className={`text-[10px] ${disp.doctorAcknowledged ? 'text-red-400 font-bold' : 'text-zinc-500'}`}>
                             {disp.doctorAcknowledged ? '✓ Confirmed' : '⏳ Awaiting doc'}
                           </span>
                         </td>
@@ -465,19 +555,14 @@ export const ManagementView: React.FC = () => {
                         </td>
 
                         <td className="py-3 px-3 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {disp.status !== 'handover_completed' ? (
-                              <button
-                                type="button"
-                                onClick={() => updateDispatchStatus(disp.id, 'handover_completed')}
-                                className="bg-red-600 hover:bg-red-500 text-white font-black px-2.5 py-1 rounded-lg text-[11px] shadow transition-all cursor-pointer uppercase tracking-wider btn-neon-red"
-                              >
-                                Admit Patient
-                              </button>
-                            ) : (
-                              <span className="text-white font-bold text-[11px]">Admitted</span>
-                            )}
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAdmitPatient(disp.id)}
+                            className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1.5 rounded-lg text-[11px] shadow transition-all cursor-pointer uppercase tracking-wider btn-neon-red flex items-center gap-1 ml-auto"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Admit</span>
+                          </button>
                         </td>
                       </tr>
                     );
@@ -489,21 +574,24 @@ export const ManagementView: React.FC = () => {
         )}
       </div>
 
-      {/* Staff Schedules & Duty Roster Management */}
+      {/* Staff Duty Roster */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-4 sm:p-5 shadow-xl">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-zinc-800">
           <div>
             <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
               Staff Schedules & Duty Roster ({currentHospital.name})
             </h3>
-            <p className="text-xs text-zinc-400">On-call Pakistani specialists synchronized across all units</p>
+            <p className="text-xs text-zinc-400">On-call specialists synchronized with ambulance dispatch</p>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-400">Filter Specialty:</span>
+            <Filter className="w-3.5 h-3.5 text-zinc-400" />
             <select
               value={selectedSpecialty}
-              onChange={(e) => setSelectedSpecialty(e.target.value)}
+              onChange={(e) => {
+                playClickTone();
+                setSelectedSpecialty(e.target.value);
+              }}
               className="bg-black border border-zinc-700 rounded-xl px-2.5 py-1 text-xs text-white font-semibold cursor-pointer"
             >
               <option value="all">All Specialties</option>
@@ -522,25 +610,30 @@ export const ManagementView: React.FC = () => {
             <div key={doc.id} className="bg-black border border-zinc-800 rounded-2xl p-4 flex flex-col justify-between hover:border-zinc-700 transition-colors">
               <div>
                 <div className="flex items-center gap-3 mb-2.5">
-                  {/* Resilient DoctorAvatar with picture fallback */}
                   <DoctorAvatar src={doc.avatar} name={doc.name} size="md" />
-                  <div>
-                    <h4 className="font-bold text-white text-sm">{doc.name}</h4>
-                    <span className="text-xs text-red-400 block font-semibold">{doc.specialty}</span>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-white text-sm truncate">{doc.name}</h4>
+                    <span className="text-xs text-red-400 block font-semibold truncate">{doc.specialty}</span>
                   </div>
                 </div>
 
                 <div className="space-y-1 text-xs text-zinc-400 mb-3">
-                  <div className="flex justify-between">
-                    <span>Shift Hours:</span>
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-zinc-500" />
+                      <span>Shift Hours:</span>
+                    </span>
                     <span className="font-mono text-zinc-200">{doc.shiftStart} - {doc.shiftEnd}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span>Available Until:</span>
                     <span className="font-mono text-white font-bold">{doc.availableUntil}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Station:</span>
+                  <div className="flex justify-between items-center">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-zinc-500" />
+                      <span>Station:</span>
+                    </span>
                     <span className="text-zinc-300">{doc.currentRoom || 'ER Ward'}</span>
                   </div>
                 </div>
@@ -558,7 +651,7 @@ export const ManagementView: React.FC = () => {
                     <button
                       key={s.id}
                       type="button"
-                      onClick={() => updateDoctorStatus(doc.id, s.id as DoctorStatus)}
+                      onClick={() => handleStatusChange(doc.id, s.id as DoctorStatus)}
                       className={`py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
                         doc.status === s.id ? `${s.col} ring-1 ring-white/20 font-black` : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                       }`}
@@ -579,16 +672,19 @@ export const ManagementView: React.FC = () => {
           <div className="bg-zinc-950 border border-red-600 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 neon-card-glow">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
               <div className="flex items-center gap-2 text-red-500">
-                <svg className="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <h3 className="font-black text-base sm:text-lg text-white">Broadcast Emergency Network Alert</h3>
+                <Megaphone className="w-5 h-5 animate-pulse text-red-500" />
+                <h3 className="font-black text-base sm:text-lg text-white">Broadcast Emergency Alert</h3>
               </div>
               <button
-                onClick={() => setShowBroadcastModal(false)}
-                className="text-zinc-400 hover:text-white text-lg font-bold cursor-pointer"
+                type="button"
+                onClick={() => {
+                  playClickTone();
+                  setShowBroadcastModal(false);
+                }}
+                className="text-zinc-400 hover:text-white p-1 rounded-lg cursor-pointer"
+                aria-label="Close broadcast modal"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -600,7 +696,10 @@ export const ManagementView: React.FC = () => {
                     <button
                       key={urg}
                       type="button"
-                      onClick={() => setBroadcastUrgency(urg)}
+                      onClick={() => {
+                        playClickTone();
+                        setBroadcastUrgency(urg);
+                      }}
                       className={`py-2 rounded-xl text-xs font-black uppercase border transition-all cursor-pointer ${
                         broadcastUrgency === urg
                           ? urg === 'critical'
@@ -640,16 +739,21 @@ export const ManagementView: React.FC = () => {
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
                 <button
                   type="button"
-                  onClick={() => setShowBroadcastModal(false)}
+                  onClick={() => {
+                    playClickTone();
+                    setShowBroadcastModal(false);
+                  }}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-400 hover:text-white cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-red-600 hover:bg-red-500 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow-lg uppercase tracking-wide cursor-pointer btn-neon-red"
+                  disabled={isBroadcasting}
+                  className="bg-red-600 hover:bg-red-500 text-white font-black text-xs px-5 py-2.5 rounded-xl shadow-lg uppercase tracking-wide cursor-pointer btn-neon-red flex items-center gap-1.5"
                 >
-                  Transmit Push Alert
+                  <Megaphone className="w-4 h-4" />
+                  <span>Transmit Push Alert</span>
                 </button>
               </div>
             </form>

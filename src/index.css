@@ -6,6 +6,8 @@
     background-color: #000000;
     color: #ffffff;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   code, pre, .font-mono {
@@ -16,15 +18,15 @@
 /* Custom pulse animations for emergency states in red/white */
 @keyframes siren-pulse {
   0%, 100% {
-    box-shadow: 0 0 18px 3px rgba(239, 68, 68, 0.7), inset 0 0 15px 3px rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 16px 2px rgba(239, 68, 68, 0.7), inset 0 0 10px 2px rgba(239, 68, 68, 0.4);
   }
   50% {
-    box-shadow: 0 0 35px 8px rgba(220, 38, 38, 0.95), inset 0 0 25px 6px rgba(220, 38, 38, 0.6);
+    box-shadow: 0 0 28px 6px rgba(220, 38, 38, 0.95), inset 0 0 18px 4px rgba(220, 38, 38, 0.6);
   }
 }
 
 .animate-siren {
-  animation: siren-pulse 1.2s infinite ease-in-out;
+  animation: siren-pulse 1.3s infinite ease-in-out;
 }
 
 @keyframes ping-slow {
@@ -38,82 +40,67 @@
   animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
-/* Animated Neon Lightings */
-@keyframes neon-glow-pulse {
+/* Animated Neon Lighting Glows */
+@keyframes neon-card-pulse {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.6), 0 0 35px rgba(220, 38, 38, 0.3), inset 0 0 10px rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.9);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.35), 0 0 45px rgba(220, 38, 38, 0.15);
+    border-color: rgba(239, 68, 68, 0.7);
   }
   50% {
-    box-shadow: 0 0 30px rgba(239, 68, 68, 0.95), 0 0 60px rgba(220, 38, 38, 0.6), inset 0 0 20px rgba(239, 68, 68, 0.4);
-    border-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 35px rgba(239, 68, 68, 0.6), 0 0 70px rgba(220, 38, 38, 0.3);
+    border-color: rgba(255, 255, 255, 0.85);
   }
 }
 
 .neon-card-glow {
-  animation: neon-glow-pulse 3s infinite ease-in-out;
+  animation: neon-card-pulse 3.5s infinite ease-in-out;
 }
 
-@keyframes neon-sweep {
-  0% {
-    transform: translateX(-100%) rotate(45deg);
-  }
-  100% {
-    transform: translateX(300%) rotate(45deg);
-  }
-}
-
-.neon-beam-sweep {
-  position: relative;
-  overflow: hidden;
-}
-
-.neon-beam-sweep::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(239, 68, 68, 0.25) 55%,
-    transparent 60%
-  );
-  animation: neon-sweep 4s infinite linear;
-  pointer-events: none;
-}
-
-/* Button Neon Hover Effects */
+/* Micro-Interaction Button Hover Effects */
 .btn-neon-red {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
 }
 
 .btn-neon-red:hover {
-  transform: translateY(-1px) scale(1.015);
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 40px rgba(220, 38, 38, 0.4);
+  transform: translateY(-1.5px);
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.75), 0 4px 14px rgba(0, 0, 0, 0.6);
   border-color: #ffffff;
 }
 
 .btn-neon-red:active {
-  transform: translateY(1px) scale(0.985);
+  transform: translateY(0.5px) scale(0.98);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
 .btn-neon-white {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-neon-white:hover {
-  transform: translateY(-1px) scale(1.015);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 35px rgba(239, 68, 68, 0.5);
+  transform: translateY(-1.5px);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.7), 0 4px 14px rgba(0, 0, 0, 0.6);
+  background-color: #f4f4f5;
 }
 
 .btn-neon-white:active {
-  transform: translateY(1px) scale(0.985);
+  transform: translateY(0.5px) scale(0.98);
+}
+
+.btn-ghost-zinc {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-ghost-zinc:hover {
+  transform: translateY(-1px);
+  background-color: #27272a;
+  border-color: #52525b;
+  color: #ffffff;
+}
+
+.btn-ghost-zinc:active {
+  transform: translateY(0.5px) scale(0.98);
 }
 
 /* Leaflet dark/high-contrast tactical map styling */
