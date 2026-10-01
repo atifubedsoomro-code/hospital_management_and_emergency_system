@@ -20,7 +20,15 @@ import {
 } from '../data/mockInitialData';
 import { soundEffects } from '../services/soundEffects';
 import { calculateDistanceKm, estimateEmergencyEta, evaluateHospitals } from '../services/routingAlgorithm';
-import { auth, signInWithGoogle, logOut, onAuthStateChanged, User } from '../firebase';
+import { auth, db, signInWithGoogle, logOut, onAuthStateChanged, User } from '../firebase';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  updateDoc, 
+  onSnapshot, 
+  getDocs 
+} from 'firebase/firestore';
 
 interface HospitalContextType {
   userRole: UserRole;
@@ -30,6 +38,7 @@ interface HospitalContextType {
   demoUserEmail: string | null;
   isGoogleAuthModalOpen: boolean;
   setIsGoogleAuthModalOpen: (open: boolean) => void;
+  isFirestoreConnected: boolean;
   hospitals: Hospital[];
   doctors: Doctor[];
   dispatches: PatientDispatch[];
@@ -83,10 +92,10 @@ interface HospitalContextType {
 
 const HospitalContext = createContext<HospitalContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY_AUTH = 'pulsesync_auth_v3';
-const LOCAL_STORAGE_KEY_DISPATCHES = 'pulsesync_dispatches_v3';
-const LOCAL_STORAGE_KEY_DOCTORS = 'pulsesync_doctors_v3';
-const LOCAL_STORAGE_KEY_HOSPITALS = 'pulsesync_hospitals_v3';
+const LOCAL_STORAGE_KEY_AUTH = 'pulsesync_auth_v4';
+const LOCAL_STORAGE_KEY_DISPATCHES = 'pulsesync_dispatches_v4';
+const LOCAL_STORAGE_KEY_DOCTORS = 'pulsesync_doctors_v4';
+const LOCAL_STORAGE_KEY_HOSPITALS = 'pulsesync_hospitals_v4';
 
 export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -100,7 +109,7 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [userRole, setUserRole] = useState<UserRole>(() => {
     try {
-      const savedRole = localStorage.getItem('pulsesync_role_v3');
+      const savedRole = localStorage.getItem('pulsesync_role_v4');
       return (savedRole as UserRole) || 'management';
     } catch {
       return 'management';
@@ -110,6 +119,7 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [demoUserEmail, setDemoUserEmail] = useState<string | null>('admin@rivercity-sukkur.pk');
   const [isGoogleAuthModalOpen, setIsGoogleAuthModalOpen] = useState(false);
+  const [isFirestoreConnected, setIsFirestoreConnected] = useState<boolean>(false);
 
   const [hospitals, setHospitals] = useState<Hospital[]>(() => {
     try {
@@ -141,57 +151,140 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [notifications, setNotifications] = useState<EmergencyNotification[]>(INITIAL_NOTIFICATIONS);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('doc-1');
   const [selectedAmbulanceId, setSelectedAmbulanceId] = useState<string>('RESCUE-1122-SK04');
-  const [activeHospitalId, setActiveHospitalId] = useState<string>('hosp-1'); // River City Hospital Sukkur
+  const [activeHospitalId, setActiveHospitalId] = useState<string>('hosp-1');
   const [isMuted, setIsMuted] = useState<boolean>(false);
 
+  // Sync to local storage as secondary backup
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY_AUTH, String(isAuthenticated));
+      localStorage.setItem('pulsesync_role_v4', userRole);
+      localStorage.setItem(LOCAL_STORAGE_KEY_HOSPITALS, JSON.stringify(hospitals));
+      localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(doctors));
+      localStorage.setItem(LOCAL_STORAGE_KEY_DISPATCHES, JSON.stringify(dispatches));
+    } catch (e) {
+      console.warn('LocalStorage save notice:', e);
+    }
+  }, [isAuthenticated, userRole, hospitals, doctors, dispatches]);
+
+  // Real-time bidirectional Firestore synchronization
+  useEffect(() => {
+    let unsubscribeHospitals = () => {};
+    let unsubscribeDoctors = () => {};
+    let unsubscribeDispatches = () => {};
+    let unsubscribeNotifications = () => {};
+
+    try {
+      // 1. Synchronize Hospitals with Firestore
+      const hospCol = collection(db, 'hospitals');
+      unsubscribeHospitals = onSnapshot(hospCol, (snapshot) => {
+        if (!snapshot.empty) {
+          const list: Hospital[] = [];
+          snapshot.forEach((d) => list.push(d.data() as Hospital));
+          setHospitals(list);
+          setIsFirestoreConnected(true);
+        } else {
+          // Seed Firestore with initial hospitals if empty
+          INITIAL_HOSPITALS.forEach(async (h) => {
+            try {
+              await setDoc(doc(db, 'hospitals', h.id), h);
+            } catch (err) {
+              console.warn('Firestore initial hospital seed notice:', err);
+            }
+          });
+          setIsFirestoreConnected(true);
+        }
+      }, (err) => {
+        console.warn('Firestore hospitals snapshot notice:', err.message);
+      });
+
+      // 2. Synchronize Doctors with Firestore
+      const docCol = collection(db, 'doctors');
+      unsubscribeDoctors = onSnapshot(docCol, (snapshot) => {
+        if (!snapshot.empty) {
+          const list: Doctor[] = [];
+          snapshot.forEach((d) => list.push(d.data() as Doctor));
+          setDoctors(list);
+          setIsFirestoreConnected(true);
+        } else {
+          // Seed Firestore with initial doctors if empty
+          INITIAL_DOCTORS.forEach(async (docItem) => {
+            try {
+              await setDoc(doc(db, 'doctors', docItem.id), docItem);
+            } catch (err) {
+              console.warn('Firestore initial doctor seed notice:', err);
+            }
+          });
+        }
+      }, (err) => {
+        console.warn('Firestore doctors snapshot notice:', err.message);
+      });
+
+      // 3. Synchronize Dispatches with Firestore
+      const dispCol = collection(db, 'dispatches');
+      unsubscribeDispatches = onSnapshot(dispCol, (snapshot) => {
+        if (!snapshot.empty) {
+          const list: PatientDispatch[] = [];
+          snapshot.forEach((d) => list.push(d.data() as PatientDispatch));
+          // Sort latest first
+          list.sort((a, b) => b.updatedAt - a.updatedAt);
+          setDispatches(list);
+          setIsFirestoreConnected(true);
+        } else {
+          INITIAL_DISPATCHES.forEach(async (disp) => {
+            try {
+              await setDoc(doc(db, 'dispatches', disp.id), disp);
+            } catch (err) {
+              console.warn('Firestore initial dispatch seed notice:', err);
+            }
+          });
+        }
+      }, (err) => {
+        console.warn('Firestore dispatches snapshot notice:', err.message);
+      });
+
+      // 4. Synchronize Emergency Notifications with Firestore
+      const notifCol = collection(db, 'notifications');
+      unsubscribeNotifications = onSnapshot(notifCol, (snapshot) => {
+        if (!snapshot.empty) {
+          const list: EmergencyNotification[] = [];
+          snapshot.forEach((d) => list.push(d.data() as EmergencyNotification));
+          list.sort((a, b) => b.timestamp - a.timestamp);
+          setNotifications(list);
+          setIsFirestoreConnected(true);
+        }
+      }, (err) => {
+        console.warn('Firestore notifications snapshot notice:', err.message);
+      });
+
+    } catch (err) {
+      console.warn('Firestore initialization notice:', err);
+    }
+
+    return () => {
+      unsubscribeHospitals();
+      unsubscribeDoctors();
+      unsubscribeDispatches();
+      unsubscribeNotifications();
+    };
+  }, []);
+
+  // Listen for Firebase Auth state changes
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
+        setCurrentUser(user);
         setDemoUserEmail(user.email);
         setIsAuthenticated(true);
       }
     });
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_AUTH, String(isAuthenticated));
-      localStorage.setItem('pulsesync_role_v3', userRole);
-    } catch (e) {
-      console.warn("Storage error", e);
-    }
-  }, [isAuthenticated, userRole]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_HOSPITALS, JSON.stringify(hospitals));
-    } catch (e) {
-      console.warn("Storage save error", e);
-    }
-  }, [hospitals]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_DOCTORS, JSON.stringify(doctors));
-    } catch (e) {
-      console.warn("Storage save error", e);
-    }
-  }, [doctors]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_DISPATCHES, JSON.stringify(dispatches));
-    } catch (e) {
-      console.warn("Storage save error", e);
-    }
-  }, [dispatches]);
-
   const toggleMute = () => {
-    const nextMuted = !isMuted;
-    setIsMuted(nextMuted);
-    soundEffects.setMuted(nextMuted);
+    const next = !isMuted;
+    setIsMuted(next);
+    soundEffects.setMuted(next);
   };
 
   const loginAsGuest = (role: 'ambulance' | 'customer') => {
@@ -210,7 +303,7 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = pass.trim();
 
-    // Auto-detect admin credentials even if doctor tab was highlighted
+    // Auto-detect admin credentials
     if ((cleanUser === 'admin' && cleanPass === 'admin') || (role === 'management' && cleanPass === 'admin')) {
       setUserRole('management');
       setActiveHospitalId('hosp-1');
@@ -220,7 +313,7 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return { success: true };
     }
 
-    // Auto-detect doctor credentials even if management tab was highlighted
+    // Auto-detect doctor credentials
     if ((cleanUser === 'doctor' && cleanPass === 'doctor') || (role === 'doctor' && cleanPass === 'doctor')) {
       setUserRole('doctor');
       setSelectedDoctorId('doc-1');
@@ -272,17 +365,22 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const markNotificationAsRead = useCallback((id: string) => {
+  const markNotificationAsRead = useCallback(async (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
+    try {
+      await updateDoc(doc(db, 'notifications', id), { read: true });
+    } catch (e) {
+      console.warn('Firestore update notification notice:', e);
+    }
   }, []);
 
   const clearAllNotifications = useCallback(() => {
     setNotifications([]);
   }, []);
 
-  const broadcastHospitalAlert = useCallback((
+  const broadcastHospitalAlert = useCallback(async (
     title: string, 
     message: string, 
     urgency: 'critical' | 'high' | 'normal', 
@@ -298,7 +396,16 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       read: false,
       hospitalId,
     };
+
     setNotifications((prev) => [newNotif, ...prev]);
+
+    // Save to Firestore
+    try {
+      await setDoc(doc(db, 'notifications', newNotif.id), newNotif);
+    } catch (e) {
+      console.warn('Firestore save notification notice:', e);
+    }
+
     if (urgency === 'critical') {
       soundEffects.playEmergencyAlert();
     } else {
@@ -373,7 +480,7 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       destinationLat: targetHospital.latitude,
       destinationLng: targetHospital.longitude,
       etaMinutes: eta,
-      distanceKm: dist,
+      distanceKm: Number(dist.toFixed(1)),
       notes: data.notes,
       timestamp: Date.now(),
       updatedAt: Date.now(),
@@ -383,41 +490,21 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setDispatches((prev) => [newDispatch, ...prev]);
 
-    setHospitals((prev) =>
-      prev.map((h) => {
-        if (h.id === targetHospital!.id) {
-          const updatedAssets = { ...h.assets };
-          if (data.requiredRoom === 'ICU' && updatedAssets.icuAvailable > 0) {
-            updatedAssets.icuAvailable -= 1;
-          } else if (data.requiredRoom === 'Trauma Bay' && updatedAssets.traumaBaysAvailable > 0) {
-            updatedAssets.traumaBaysAvailable -= 1;
-          }
-          if (updatedAssets.availableBeds > 0) {
-            updatedAssets.availableBeds -= 1;
-          }
-          return { ...h, assets: updatedAssets };
-        }
-        return h;
-      })
+    // Save to Firestore
+    setDoc(doc(db, 'dispatches', newDispatch.id), newDispatch).catch((err) => {
+      console.warn('Firestore save dispatch notice:', err);
+    });
+
+    // Notify Hospital & Doctor
+    broadcastHospitalAlert(
+      `INBOUND INTAKE: ${targetHospital.name}`,
+      `${newDispatch.ambulanceCallsign} inbound with ${newDispatch.patientName} (${newDispatch.condition}). Reserved ${newDispatch.requiredRoom}. ETA: ${eta} mins.`,
+      newDispatch.esiLevel === 1 ? 'critical' : 'high',
+      targetHospital.id
     );
 
-    const notif: EmergencyNotification = {
-      id: `notif-${Date.now()}`,
-      type: 'emergency_intake',
-      title: `EMERGENCY ADMISSION: ${targetHospital.name}`,
-      message: `${data.condition} (ESI ${data.esiLevel}) - ETA: ${eta} mins to ${targetHospital.name}. Room and doctor reserved.`,
-      urgency: data.esiLevel === 1 ? 'critical' : 'high',
-      timestamp: Date.now(),
-      read: false,
-      hospitalId: targetHospital.id,
-      dispatchId: newDispatch.id,
-    };
-
-    setNotifications((prev) => [notif, ...prev]);
-    soundEffects.playEmergencyAlert();
-
     return newDispatch;
-  }, [hospitals, doctors, selectedAmbulanceId]);
+  }, [hospitals, doctors, selectedAmbulanceId, broadcastHospitalAlert]);
 
   const requestEmergencyPickup = useCallback((data: {
     citizenName: string;
@@ -426,208 +513,199 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     condition: EmergencyCondition;
     notes: string;
   }): PatientDispatch => {
-    let requiredRoom: RoomType = 'General ER';
-    let requiredSpecialty: Specialty = 'Emergency Medicine';
+    const lat = 27.7052 + (Math.random() - 0.5) * 0.02;
+    const lng = 68.8574 + (Math.random() - 0.5) * 0.02;
+    const flagship = hospitals[0] || INITIAL_HOSPITALS[0];
 
-    if (data.condition === 'Cardiac Arrest / STEMI') {
-      requiredRoom = 'Cath Lab';
-      requiredSpecialty = 'Cardiology / Cath Lab';
-    } else if (data.condition === 'Severe Trauma / Hemorrhage') {
-      requiredRoom = 'Trauma Bay';
-      requiredSpecialty = 'Trauma Surgery';
-    } else if (data.condition === 'Acute Stroke / CVA') {
-      requiredRoom = 'General ER';
-      requiredSpecialty = 'Neurology / Stroke';
-    } else if (data.condition === 'Respiratory Failure / ARDS') {
-      requiredRoom = 'ICU';
-      requiredSpecialty = 'Pulmonology / ICU';
-    } else if (data.condition === 'Pediatric Severe Distress') {
-      requiredRoom = 'General ER';
-      requiredSpecialty = 'Pediatric Emergency';
-    }
-
-    const defaultVitals: PatientVitals = {
-      heartRate: 110,
-      bloodPressureSystolic: 120,
-      bloodPressureDiastolic: 80,
-      oxygenSaturation: 94,
-      respiratoryRate: 20,
-      gcs: 14,
-      temperatureC: 37.0,
-    };
-
-    const newDisp = submitPatientIntake({
-      patientName: `${data.citizenName} (Ph: ${data.contactNumber})`,
-      age: 40,
+    const newDispatch: PatientDispatch = {
+      id: `pickup-${Date.now().toString().slice(-4)}`,
+      ambulanceId: 'RESCUE-1122-SK04',
+      ambulanceCallsign: 'Sindh Rescue 1122 (Unit 04 Sukkur)',
+      driverName: 'Lead EMT Jamil / EMT Rasheed',
+      patientName: data.citizenName,
+      age: 45,
       gender: 'M',
       condition: data.condition,
       esiLevel: 1,
-      requiredRoom,
-      requiredSpecialty,
-      vitals: defaultVitals,
-      notes: `Location: ${data.locationInSukkur}. Caller Note: ${data.notes}`,
+      requiredRoom: data.condition.includes('Cardiac') ? 'Cath Lab' : 'Trauma Bay',
+      requiredSpecialty: data.condition.includes('Cardiac') ? 'Cardiology / Cath Lab' : 'Trauma Surgery',
+      vitals: {
+        heartRate: 110,
+        bloodPressureSystolic: 95,
+        bloodPressureDiastolic: 60,
+        oxygenSaturation: 92,
+        respiratoryRate: 22,
+        gcs: 14,
+        temperatureC: 36.8,
+      },
+      targetHospitalId: flagship.id,
+      status: 'en_route_scene',
+      currentLat: 27.7120,
+      currentLng: 68.8450,
+      destinationLat: lat,
+      destinationLng: lng,
+      etaMinutes: 7,
+      distanceKm: 3.2,
+      notes: `Citizen Request from ${data.locationInSukkur}. Phone: ${data.contactNumber}. Symptoms: ${data.notes}`,
+      timestamp: Date.now(),
+      updatedAt: Date.now(),
+      doctorAcknowledged: false,
+      hospitalBedReserved: true,
+    };
+
+    setDispatches((prev) => [newDispatch, ...prev]);
+
+    // Save to Firestore
+    setDoc(doc(db, 'dispatches', newDispatch.id), newDispatch).catch((err) => {
+      console.warn('Firestore save pickup notice:', err);
     });
 
     broadcastHospitalAlert(
-      `CITIZEN EMERGENCY PICKUP: ${data.locationInSukkur}`,
-      `${data.citizenName} (${data.contactNumber}) requested rapid ambulance dispatch in Sukkur. Response unit engaged.`,
-      'critical'
+      'CITIZEN EMERGENCY PICKUP REQUESTED',
+      `Rescue 1122 dispatched to ${data.locationInSukkur} for ${data.citizenName}. River City Hospital Sukkur prepped.`,
+      'critical',
+      flagship.id
     );
 
-    return newDisp;
-  }, [submitPatientIntake, broadcastHospitalAlert]);
+    return newDispatch;
+  }, [hospitals, broadcastHospitalAlert]);
 
-  const updateDispatchStatus = useCallback((dispatchId: string, newStatus: DispatchStatus) => {
+  const updateDispatchStatus = useCallback(async (dispatchId: string, newStatus: DispatchStatus) => {
     setDispatches((prev) =>
       prev.map((d) => {
         if (d.id === dispatchId) {
-          const updated: PatientDispatch = {
-            ...d,
-            status: newStatus,
+          const updated = { 
+            ...d, 
+            status: newStatus, 
             updatedAt: Date.now(),
-            etaMinutes: newStatus === 'arrived_hospital' || newStatus === 'handover_completed' ? 0 : d.etaMinutes,
+            etaMinutes: newStatus === 'arrived_hospital' ? 0 : d.etaMinutes
           };
-
-          let statusText = '';
-          if (newStatus === 'transporting') statusText = 'En Route to Hospital';
-          if (newStatus === 'arrived_hospital') statusText = 'Arrived at Emergency Bay - Handover Commenced';
-          if (newStatus === 'handover_completed') statusText = 'Patient Successfully Admitted';
-
-          const notif: EmergencyNotification = {
-            id: `status-${Date.now()}`,
-            type: 'status_change',
-            title: `Ambulance Status: ${d.ambulanceCallsign}`,
-            message: `${d.patientName} (${d.condition}) → ${statusText}.`,
-            urgency: newStatus === 'arrived_hospital' ? 'critical' : 'normal',
-            timestamp: Date.now(),
-            read: false,
-            hospitalId: d.targetHospitalId,
-            dispatchId: d.id,
-          };
-          setNotifications((n) => [notif, ...n]);
-          soundEffects.playPagerChime();
-
           return updated;
         }
         return d;
       })
     );
+
+    // Save to Firestore
+    try {
+      await updateDoc(doc(db, 'dispatches', dispatchId), {
+        status: newStatus,
+        updatedAt: Date.now(),
+        ...(newStatus === 'arrived_hospital' ? { etaMinutes: 0 } : {}),
+      });
+    } catch (e) {
+      console.warn('Firestore update dispatch status notice:', e);
+    }
+
+    soundEffects.playStatusUpdateTone();
   }, []);
 
-  const updateDoctorStatus = useCallback((
+  const updateDoctorStatus = useCallback(async (
     doctorId: string, 
     status: DoctorStatus, 
     availableUntil?: string, 
     note?: string
   ) => {
     setDoctors((prev) =>
-      prev.map((doc) => {
-        if (doc.id === doctorId) {
-          const updated: Doctor = {
-            ...doc,
+      prev.map((docItem) => {
+        if (docItem.id === doctorId) {
+          return {
+            ...docItem,
             status,
-            availableUntil: availableUntil || doc.availableUntil,
-            note: note !== undefined ? note : doc.note,
+            availableUntil: availableUntil !== undefined ? availableUntil : docItem.availableUntil,
+            note: note !== undefined ? note : docItem.note,
           };
-
-          const notif: EmergencyNotification = {
-            id: `doc-${Date.now()}`,
-            type: 'doctor_ready',
-            title: `Doctor Availability Updated: ${doc.name}`,
-            message: `Status updated to [${status.toUpperCase()}]. Available until: ${updated.availableUntil}.`,
-            urgency: status === 'available' ? 'normal' : 'high',
-            timestamp: Date.now(),
-            read: false,
-            hospitalId: doc.hospitalId,
-          };
-          setNotifications((n) => [notif, ...n]);
-          soundEffects.playSuccessTone();
-
-          return updated;
         }
-        return doc;
+        return docItem;
       })
     );
+
+    // Save to Firestore
+    try {
+      await updateDoc(doc(db, 'doctors', doctorId), {
+        status,
+        ...(availableUntil ? { availableUntil } : {}),
+        ...(note !== undefined ? { note } : {}),
+        updatedAt: Date.now(),
+      });
+    } catch (e) {
+      console.warn('Firestore update doctor notice:', e);
+    }
+
+    soundEffects.playStatusUpdateTone();
   }, []);
 
-  const updateHospitalAssets = useCallback((
+  const updateHospitalAssets = useCallback(async (
     hospitalId: string, 
     partialAssets: Partial<Hospital['assets']>, 
     divertStatus?: boolean
   ) => {
+    let updatedHosp: Hospital | undefined;
     setHospitals((prev) =>
       prev.map((h) => {
         if (h.id === hospitalId) {
-          const updated = {
+          updatedHosp = {
             ...h,
             assets: { ...h.assets, ...partialAssets },
             divertStatus: divertStatus !== undefined ? divertStatus : h.divertStatus,
           };
-
-          if (divertStatus === true) {
-            broadcastHospitalAlert(
-              `HOSPITAL DIVERT ACTIVE: ${h.name}`,
-              'Hospital is now on divert protocol. Incoming ambulances will be auto-rerouted to alternate facilities.',
-              'critical',
-              hospitalId
-            );
-          } else {
-            soundEffects.playSuccessTone();
-          }
-
-          return updated;
+          return updatedHosp;
         }
         return h;
       })
     );
-  }, [broadcastHospitalAlert]);
 
-  const acknowledgePatientByDoctor = useCallback((dispatchId: string, doctorId: string) => {
+    // Save to Firestore
+    if (updatedHosp) {
+      try {
+        await setDoc(doc(db, 'hospitals', hospitalId), updatedHosp, { merge: true });
+      } catch (e) {
+        console.warn('Firestore update hospital assets notice:', e);
+      }
+    }
+
+    soundEffects.playStatusUpdateTone();
+  }, []);
+
+  const acknowledgePatientByDoctor = useCallback(async (dispatchId: string, doctorId: string) => {
     setDispatches((prev) =>
-      prev.map((d) => (d.id === dispatchId ? { ...d, doctorAcknowledged: true } : d))
+      prev.map((d) => (d.id === dispatchId ? { ...d, doctorAcknowledged: true, assignedDoctorId: doctorId, updatedAt: Date.now() } : d))
     );
 
-    const doc = doctors.find((d) => d.id === doctorId);
-    const disp = dispatches.find((d) => d.id === dispatchId);
-
-    if (doc && disp) {
-      const notif: EmergencyNotification = {
-        id: `ack-${Date.now()}`,
-        type: 'doctor_ready',
-        title: `Doctor Ready: ${doc.name}`,
-        message: `${doc.name} confirmed ready for incoming patient ${disp.patientName}. Resuscitation room prepped.`,
-        urgency: 'high',
-        timestamp: Date.now(),
-        read: false,
-        hospitalId: disp.targetHospitalId,
-        dispatchId: disp.id,
-      };
-      setNotifications((n) => [notif, ...n]);
-      soundEffects.playSuccessTone();
+    // Save to Firestore
+    try {
+      await updateDoc(doc(db, 'dispatches', dispatchId), {
+        doctorAcknowledged: true,
+        assignedDoctorId: doctorId,
+        updatedAt: Date.now(),
+      });
+    } catch (e) {
+      console.warn('Firestore doctor acknowledge notice:', e);
     }
-  }, [doctors, dispatches]);
 
-  const moveAmbulanceTowardsTarget = useCallback((dispatchId: string) => {
+    const docObj = doctors.find((d) => d.id === doctorId);
+    broadcastHospitalAlert(
+      'DOCTOR ACKNOWLEDGED PATIENT',
+      `${docObj ? docObj.name : 'Specialist'} has acknowledged intake #${dispatchId.slice(-4)} and is awaiting arrival.`,
+      'high'
+    );
+  }, [doctors, broadcastHospitalAlert]);
+
+  const moveAmbulanceTowardsTarget = useCallback(async (dispatchId: string) => {
+    let nextLat = 0;
+    let nextLng = 0;
+    let nextEta = 0;
+    let nextDist = 0;
+
     setDispatches((prev) =>
       prev.map((d) => {
-        if (d.id === dispatchId && d.destinationLat && d.destinationLng && d.status === 'transporting') {
-          const stepRatio = 0.3;
-          const nextLat = d.currentLat + (d.destinationLat - d.currentLat) * stepRatio;
-          const nextLng = d.currentLng + (d.destinationLng - d.currentLng) * stepRatio;
-          const nextDist = calculateDistanceKm(nextLat, nextLng, d.destinationLat, d.destinationLng);
-          const nextEta = estimateEmergencyEta(nextDist);
-
-          if (nextDist <= 0.3) {
-            soundEffects.playEmergencyAlert();
-            return {
-              ...d,
-              currentLat: d.destinationLat,
-              currentLng: d.destinationLng,
-              distanceKm: 0,
-              etaMinutes: 0,
-              status: 'arrived_hospital',
-            };
-          }
+        if (d.id === dispatchId && d.destinationLat && d.destinationLng) {
+          const deltaLat = (d.destinationLat - d.currentLat) * 0.35;
+          const deltaLng = (d.destinationLng - d.currentLng) * 0.35;
+          nextLat = d.currentLat + deltaLat;
+          nextLng = d.currentLng + deltaLng;
+          nextDist = Number(calculateDistanceKm(nextLat, nextLng, d.destinationLat, d.destinationLng).toFixed(1));
+          nextEta = estimateEmergencyEta(nextDist);
 
           return {
             ...d,
@@ -635,11 +713,27 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             currentLng: nextLng,
             distanceKm: nextDist,
             etaMinutes: nextEta,
+            updatedAt: Date.now(),
           };
         }
         return d;
       })
     );
+
+    // Save updated GPS location to Firestore
+    if (nextLat && nextLng) {
+      try {
+        await updateDoc(doc(db, 'dispatches', dispatchId), {
+          currentLat: nextLat,
+          currentLng: nextLng,
+          distanceKm: nextDist,
+          etaMinutes: nextEta,
+          updatedAt: Date.now(),
+        });
+      } catch (e) {
+        console.warn('Firestore GPS update notice:', e);
+      }
+    }
   }, []);
 
   return (
@@ -652,6 +746,7 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         demoUserEmail,
         isGoogleAuthModalOpen,
         setIsGoogleAuthModalOpen,
+        isFirestoreConnected,
         hospitals,
         doctors,
         dispatches,

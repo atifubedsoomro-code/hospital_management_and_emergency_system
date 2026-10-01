@@ -125,6 +125,11 @@ class SoundEffectsService {
       console.warn("Audio success error", e);
     }
   }
+
+  // Status update chime
+  public playStatusUpdateTone() {
+    this.playSuccessTone();
+  }
 }
 
 export const soundEffects = new SoundEffectsService();

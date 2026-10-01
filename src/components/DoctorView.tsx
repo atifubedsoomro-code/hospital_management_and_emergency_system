@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useHospital } from '../context/HospitalContext';
+import { HospitalLogoFrame } from './HospitalLogoFrame';
+import { DoctorAvatar } from './DoctorAvatar';
 import { DoctorStatus } from '../types';
 
 export const DoctorView: React.FC = () => {
@@ -55,55 +57,54 @@ export const DoctorView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Doctor Identity Header */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-5 shadow-2xl">
+    <div className="max-w-4xl mx-auto space-y-5 sm:space-y-6">
+      {/* Doctor Identity Header with Framed Logo */}
+      <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-4 sm:p-5 shadow-2xl">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-zinc-800">
           <div className="flex items-center gap-3.5">
-            <img
-              src={currentDoctor.avatar}
-              alt={currentDoctor.name}
-              className="w-14 h-14 rounded-2xl object-cover border-2 border-red-500 shadow-md"
-            />
+            <DoctorAvatar src={currentDoctor.avatar} name={currentDoctor.name} size="lg" />
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-black text-white">{currentDoctor.name}</h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-950 text-red-400 border border-red-800 uppercase">
-                  Mobile Doctor Console
+                <h2 className="text-lg sm:text-xl font-black text-white">{currentDoctor.name}</h2>
+                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-950 text-red-400 border border-red-800 uppercase font-mono">
+                  Doctor Station
                 </span>
               </div>
               <p className="text-xs text-red-400 font-semibold">{currentDoctor.specialty}</p>
               <p className="text-[11px] text-zinc-400">
-                Hospital: <strong className="text-white">{currentHospital.name}</strong> • Direct Phone: <span className="font-mono text-zinc-300">{currentDoctor.phone}</span>
+                Hospital: <strong className="text-white">{currentHospital.name}</strong> • Phone: <span className="font-mono text-zinc-300">{currentDoctor.phone}</span>
               </p>
             </div>
           </div>
 
-          {/* Switch Doctor Profile */}
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] text-zinc-400 uppercase font-semibold mb-1">Switch Doctor Profile:</span>
-            <select
-              value={selectedDoctorId}
-              onChange={(e) => {
-                setSelectedDoctorId(e.target.value);
-                const doc = doctors.find((d) => d.id === e.target.value);
-                if (doc) {
-                  setAvailableUntilTime(doc.availableUntil);
-                  setStatusNote(doc.note || '');
-                }
-              }}
-              className="bg-black border border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-white font-semibold focus:outline-none focus:border-red-500 cursor-pointer"
-            >
-              {doctors.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name} ({d.specialty})
-                </option>
-              ))}
-            </select>
+          {/* Switch Doctor Profile & Logo */}
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <div className="flex flex-col items-start sm:items-end">
+              <span className="text-[10px] text-zinc-400 uppercase font-semibold mb-1">Switch Doctor Profile:</span>
+              <select
+                value={selectedDoctorId}
+                onChange={(e) => {
+                  setSelectedDoctorId(e.target.value);
+                  const doc = doctors.find((d) => d.id === e.target.value);
+                  if (doc) {
+                    setAvailableUntilTime(doc.availableUntil);
+                    setStatusNote(doc.note || '');
+                  }
+                }}
+                className="bg-black border border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-white font-semibold focus:outline-none focus:border-red-500 cursor-pointer"
+              >
+                {doctors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.specialty})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <HospitalLogoFrame size="sm" withGlow={false} />
           </div>
         </div>
 
-        {/* Real-time Status Switcher */}
+        {/* Real-time Status Switcher (Mobile optimized grid) */}
         <div>
           <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">
             Duty & Availability Status (Broadcast to Ambulance Routing Algorithm)
@@ -116,7 +117,7 @@ export const DoctorView: React.FC = () => {
                 label: 'Available / On-Duty',
                 desc: 'Ready for intakes',
                 bg: 'bg-zinc-900 border-zinc-700 text-white',
-                activeBg: 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-950 font-black',
+                activeBg: 'bg-red-600 border-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.7)] font-black',
                 indicator: 'bg-white',
               },
               {
@@ -132,7 +133,7 @@ export const DoctorView: React.FC = () => {
                 label: 'Code Blue / Resus',
                 desc: 'Critical case standby',
                 bg: 'bg-zinc-900 border-zinc-700 text-zinc-300',
-                activeBg: 'bg-red-700 border-red-400 text-white shadow-lg shadow-red-950 font-black',
+                activeBg: 'bg-red-700 border-red-400 text-white shadow-[0_0_15px_rgba(239,68,68,0.7)] font-black',
                 indicator: 'bg-red-400',
               },
               {
@@ -158,7 +159,7 @@ export const DoctorView: React.FC = () => {
                   key={item.status}
                   type="button"
                   onClick={() => handleStatusChange(item.status as DoctorStatus)}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                  className={`p-2.5 sm:p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                     isActive ? item.activeBg : `${item.bg} hover:border-zinc-500`
                   }`}
                 >
@@ -174,7 +175,7 @@ export const DoctorView: React.FC = () => {
         </div>
 
         {/* Time & Shift Availability Station */}
-        <div className="mt-4 p-4 rounded-2xl bg-black border border-zinc-800">
+        <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-black border border-zinc-800">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
             <div>
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
@@ -186,26 +187,26 @@ export const DoctorView: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-zinc-400">Quick Extend:</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="text-xs text-zinc-400 hidden sm:inline">Quick Extend:</span>
               <button
                 type="button"
                 onClick={() => handleQuickAddAvailability(1)}
-                className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs border border-zinc-700 cursor-pointer"
+                className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs border border-zinc-700 cursor-pointer active:scale-95"
               >
                 +1 Hour
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickAddAvailability(2)}
-                className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs border border-zinc-700 cursor-pointer"
+                className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs border border-zinc-700 cursor-pointer active:scale-95"
               >
                 +2 Hours
               </button>
               <button
                 type="button"
                 onClick={() => setIsUpdatingShift(!isUpdatingShift)}
-                className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1 rounded-lg text-xs cursor-pointer"
+                className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1 rounded-lg text-xs cursor-pointer btn-neon-red"
               >
                 {isUpdatingShift ? 'Close' : 'Edit Time'}
               </button>
@@ -236,7 +237,7 @@ export const DoctorView: React.FC = () => {
                   />
                   <button
                     type="submit"
-                    className="bg-red-600 hover:bg-red-500 text-white font-black px-4 py-1.5 rounded-xl text-xs whitespace-nowrap cursor-pointer uppercase tracking-wider"
+                    className="bg-red-600 hover:bg-red-500 text-white font-black px-4 py-1.5 rounded-xl text-xs whitespace-nowrap cursor-pointer uppercase tracking-wider btn-neon-red"
                   >
                     Broadcast Update
                   </button>
@@ -258,15 +259,15 @@ export const DoctorView: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
-            <h3 className="text-base font-black text-white tracking-wide uppercase">
+            <h3 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
               Inbound Emergency Ambulances ({inboundDispatches.length})
             </h3>
           </div>
-          <span className="text-xs text-zinc-400">Firebase Real-time Stream</span>
+          <span className="text-[11px] text-zinc-400 font-mono">Firebase Firestore Stream</span>
         </div>
 
         {inboundDispatches.length === 0 ? (
-          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-8 text-center">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 text-center">
             <div className="w-12 h-12 rounded-full bg-zinc-900 flex items-center justify-center mx-auto mb-3 text-zinc-500">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -286,15 +287,15 @@ export const DoctorView: React.FC = () => {
               return (
                 <div
                   key={disp.id}
-                  className={`bg-zinc-950 border rounded-3xl p-5 shadow-xl transition-all ${
+                  className={`bg-zinc-950 border rounded-3xl p-4 sm:p-5 shadow-xl transition-all ${
                     disp.esiLevel === 1
-                      ? 'border-red-600/70 shadow-red-950/40'
+                      ? 'border-red-600/70 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
                       : 'border-zinc-800'
                   }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-zinc-800">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-600 text-white uppercase">
                           ESI {disp.esiLevel} CRITICAL
                         </span>
@@ -305,7 +306,7 @@ export const DoctorView: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <h4 className="text-lg font-black text-white mt-1">
+                      <h4 className="text-base sm:text-lg font-black text-white mt-1">
                         {disp.patientName}, {disp.age}y ({disp.gender})
                       </h4>
                       <p className="text-xs font-semibold text-red-400">{disp.condition}</p>
@@ -313,7 +314,7 @@ export const DoctorView: React.FC = () => {
 
                     <div className="text-right">
                       <span className="text-[10px] text-zinc-400 block font-mono">ESTIMATED ARRIVAL</span>
-                      <span className="text-2xl font-black font-mono text-white animate-pulse">
+                      <span className="text-xl sm:text-2xl font-black font-mono text-white animate-pulse">
                         {disp.etaMinutes} MINS
                       </span>
                       <span className="text-[11px] text-zinc-400 block font-mono">{disp.distanceKm} km away</span>
@@ -323,29 +324,29 @@ export const DoctorView: React.FC = () => {
                   {/* Telemetry Strip */}
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 my-3 font-mono text-center text-xs">
                     <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                      <span className="text-[10px] text-zinc-500 block uppercase">HR</span>
+                      <span className="text-[9px] text-zinc-500 block uppercase">HR</span>
                       <span className="font-bold text-red-500">{disp.vitals.heartRate} bpm</span>
                     </div>
                     <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                      <span className="text-[10px] text-zinc-500 block uppercase">BP</span>
+                      <span className="text-[9px] text-zinc-500 block uppercase">BP</span>
                       <span className="font-bold text-white">
                         {disp.vitals.bloodPressureSystolic}/{disp.vitals.bloodPressureDiastolic}
                       </span>
                     </div>
                     <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                      <span className="text-[10px] text-zinc-500 block uppercase">SpO2</span>
+                      <span className="text-[9px] text-zinc-500 block uppercase">SpO2</span>
                       <span className="font-bold text-white">{disp.vitals.oxygenSaturation}%</span>
                     </div>
                     <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                      <span className="text-[10px] text-zinc-500 block uppercase">RR</span>
+                      <span className="text-[9px] text-zinc-500 block uppercase">RR</span>
                       <span className="font-bold text-zinc-300">{disp.vitals.respiratoryRate}/m</span>
                     </div>
                     <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                      <span className="text-[10px] text-zinc-500 block uppercase">GCS</span>
+                      <span className="text-[9px] text-zinc-500 block uppercase">GCS</span>
                       <span className="font-bold text-white">{disp.vitals.gcs}</span>
                     </div>
                     <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                      <span className="text-[10px] text-zinc-500 block uppercase">ROOM</span>
+                      <span className="text-[9px] text-zinc-500 block uppercase">ROOM</span>
                       <span className="font-bold text-red-400">{disp.requiredRoom}</span>
                     </div>
                   </div>
@@ -358,20 +359,20 @@ export const DoctorView: React.FC = () => {
 
                   {/* Actions & Doctor Confirmation */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-800">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                       <button
                         type="button"
                         onClick={() => handleOrderPreArrival(disp.id, 'STAT Trauma Blood Pack Reserve')}
-                        className="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-xl text-xs font-bold border border-zinc-700 cursor-pointer"
+                        className="bg-zinc-900 hover:bg-zinc-800 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold border border-zinc-700 cursor-pointer hover:border-red-500 active:scale-95"
                       >
-                        🩸 Reserve Blood Pack
+                        🩸 Reserve Blood
                       </button>
                       <button
                         type="button"
                         onClick={() => handleOrderPreArrival(disp.id, 'Emergency CT Scanner Reserve')}
-                        className="bg-zinc-900 hover:bg-zinc-800 text-white px-3 py-1.5 rounded-xl text-xs font-bold border border-zinc-700 cursor-pointer"
+                        className="bg-zinc-900 hover:bg-zinc-800 text-white px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold border border-zinc-700 cursor-pointer hover:border-red-500 active:scale-95"
                       >
-                        🔬 Reserve CT Scanner
+                        🔬 Reserve CT
                       </button>
                     </div>
 
@@ -387,12 +388,12 @@ export const DoctorView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => acknowledgePatientByDoctor(disp.id, currentDoctor.id)}
-                          className="bg-red-600 hover:bg-red-500 text-white font-black px-4 py-2 rounded-xl text-xs shadow-lg shadow-red-950/60 flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer uppercase tracking-wider"
+                          className="bg-red-600 hover:bg-red-500 text-white font-black px-4 py-2 rounded-xl text-xs shadow-lg flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer uppercase tracking-wider btn-neon-red"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                           </svg>
-                          Acknowledge & Confirm Ready
+                          Confirm Doctor Ready
                         </button>
                       )}
                     </div>

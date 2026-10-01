@@ -129,7 +129,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
   {
     id: 'doc-3',
     name: 'Dr. Ayesha Abbasi, FCPS (Neurology)',
-    avatar: 'https://images.unsplash.com/photo-1594824813681-447551061793?w=150&auto=format&fit=crop&q=80',
+    avatar: 'https://images.unsplash.com/photo-1594824813620-bf44b4131df3?w=200&auto=format&fit=crop&q=80',
     specialty: 'Neurology / Stroke',
     hospitalId: 'hosp-1', // River City Sukkur
     status: 'available',

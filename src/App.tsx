@@ -8,12 +8,13 @@ import { DoctorView } from './components/DoctorView';
 import { CustomerView } from './components/CustomerView';
 import { NotificationBanner } from './components/NotificationBanner';
 import { GoogleAuthModal } from './components/GoogleAuthModal';
+import { HospitalLogoFrame } from './components/HospitalLogoFrame';
 
 const DashboardContent: React.FC = () => {
-  const { isAuthenticated, userRole } = useHospital();
+  const { isAuthenticated, userRole, isFirestoreConnected } = useHospital();
   const [multiRoleMode, setMultiRoleMode] = useState<boolean>(false);
 
-  // If not authenticated, render the dedicated Red & Black Login Page
+  // If not authenticated, render the dedicated Red, Black & White Login Page
   if (!isAuthenticated) {
     return <LoginPage />;
   }
@@ -30,11 +31,11 @@ const DashboardContent: React.FC = () => {
       <GoogleAuthModal />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {multiRoleMode ? (
           /* Tri-View Mode: Observe Real-Time Sync Across All Roles Simultaneously */
           <div className="space-y-6">
-            <div className="bg-zinc-950 border border-red-600/40 rounded-2xl p-4 shadow-xl flex items-center justify-between">
+            <div className="bg-zinc-950 border border-red-600/40 rounded-2xl p-4 shadow-xl flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <span className="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
                 <div>
@@ -42,14 +43,14 @@ const DashboardContent: React.FC = () => {
                     Sukkur Region Tri-Perspective Real-Time Sync
                   </h3>
                   <p className="text-xs text-zinc-400">
-                    Interact with any column below (update patient status, doctor availability, or hospital assets) to observe instant real-time synchronization.
+                    Interact with any column below (update patient status, doctor availability, or hospital assets) to observe instant real-time synchronization in Firestore.
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setMultiRoleMode(false)}
-                className="bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-zinc-700 cursor-pointer uppercase"
+                className="bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-zinc-700 cursor-pointer uppercase hover:border-white"
               >
                 Close Tri-View
               </button>
@@ -65,7 +66,7 @@ const DashboardContent: React.FC = () => {
                   </div>
                   <span className="text-[10px] text-zinc-400 font-mono">Sindh Rescue 1122</span>
                 </div>
-                <div className="bg-black rounded-3xl p-2 border border-zinc-800">
+                <div className="bg-black rounded-3xl p-1.5 sm:p-2 border border-zinc-800">
                   <AmbulanceView />
                 </div>
               </div>
@@ -79,7 +80,7 @@ const DashboardContent: React.FC = () => {
                   </div>
                   <span className="text-[10px] text-red-400 font-mono">River City Hospital</span>
                 </div>
-                <div className="bg-black rounded-3xl p-2 border border-zinc-800">
+                <div className="bg-black rounded-3xl p-1.5 sm:p-2 border border-zinc-800">
                   <DoctorView />
                 </div>
               </div>
@@ -93,7 +94,7 @@ const DashboardContent: React.FC = () => {
                   </div>
                   <span className="text-[10px] text-zinc-400 font-mono">Capacity & Assets</span>
                 </div>
-                <div className="bg-black rounded-3xl p-2 border border-zinc-800">
+                <div className="bg-black rounded-3xl p-1.5 sm:p-2 border border-zinc-800">
                   <ManagementView />
                 </div>
               </div>
@@ -110,29 +111,26 @@ const DashboardContent: React.FC = () => {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-black border-t border-zinc-800 py-4 px-4 sm:px-6 lg:px-8 mt-12 text-xs text-zinc-400">
+      {/* Footer with Framed Logo */}
+      <footer className="bg-black border-t border-zinc-800 py-4 px-3 sm:px-6 lg:px-8 mt-12 text-xs text-zinc-400">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
+            <HospitalLogoFrame size="xs" withGlow={false} />
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-              <span className="text-white font-bold">River City Hospital Sukkur Network</span>
+              <span className="text-white font-bold">Hospital Management Sukkur Network</span>
             </div>
-            <span className="text-zinc-600">|</span>
-            <span className="font-mono text-zinc-300 text-[11px]">DB: hospital-management-3b3f6</span>
-            <span className="text-zinc-600">|</span>
-            <span className="text-zinc-400">Sukkur, Sindh, Pakistan</span>
+            <span className="text-zinc-600 hidden sm:inline">|</span>
+            <span className="font-mono text-zinc-300 text-[11px] hidden sm:inline">River City Hospital Sukkur</span>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px]">
-            <span className="flex items-center gap-1 text-zinc-400">
-              <svg className="w-3.5 h-3.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Encrypted Real-Time Sync
+          <div className="flex flex-wrap items-center gap-3 text-[11px]">
+            <span className="flex items-center gap-1.5 text-zinc-400">
+              <span className={`w-2 h-2 rounded-full ${isFirestoreConnected ? 'bg-red-500 animate-ping' : 'bg-zinc-500'}`} />
+              <span>Firestore: <strong className="text-white font-mono">hospital-management-3b3f6</strong></span>
             </span>
             <span className="text-zinc-600">|</span>
-            <span>PulseSync Sukkur Emergency Network © 2026</span>
+            <span>Hospital Management © 2026</span>
           </div>
         </div>
       </footer>

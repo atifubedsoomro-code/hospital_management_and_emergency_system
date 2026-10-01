@@ -42,7 +42,7 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors | PulseSync Sukkur GIS',
+        attribution: '&copy; OpenStreetMap contributors | Hospital Management Sukkur GIS',
         maxZoom: 19,
       }).addTo(map);
 

@@ -38,6 +38,84 @@
   animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
+/* Animated Neon Lightings */
+@keyframes neon-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.6), 0 0 35px rgba(220, 38, 38, 0.3), inset 0 0 10px rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.9);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.95), 0 0 60px rgba(220, 38, 38, 0.6), inset 0 0 20px rgba(239, 68, 68, 0.4);
+    border-color: rgba(255, 255, 255, 0.95);
+  }
+}
+
+.neon-card-glow {
+  animation: neon-glow-pulse 3s infinite ease-in-out;
+}
+
+@keyframes neon-sweep {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(300%) rotate(45deg);
+  }
+}
+
+.neon-beam-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.neon-beam-sweep::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(239, 68, 68, 0.25) 55%,
+    transparent 60%
+  );
+  animation: neon-sweep 4s infinite linear;
+  pointer-events: none;
+}
+
+/* Button Neon Hover Effects */
+.btn-neon-red {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-neon-red:hover {
+  transform: translateY(-1px) scale(1.015);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 40px rgba(220, 38, 38, 0.4);
+  border-color: #ffffff;
+}
+
+.btn-neon-red:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+.btn-neon-white {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-neon-white:hover {
+  transform: translateY(-1px) scale(1.015);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 35px rgba(239, 68, 68, 0.5);
+}
+
+.btn-neon-white:active {
+  transform: translateY(1px) scale(0.985);
+}
+
 /* Leaflet dark/high-contrast tactical map styling */
 .leaflet-container {
   font-family: inherit !important;
