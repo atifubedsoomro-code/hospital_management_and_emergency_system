@@ -1,0 +1,6 @@
+{
+  "name": "PulseSync - Emergency Hospitalization Network",
+  "description": "Unified real-time dashboard synchronizing Ambulance Drivers, Doctors, and Hospital Management with intelligent routing, room and doctor availability, and Leaflet live maps.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

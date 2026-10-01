@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #000000;
+    color: #ffffff;
+    overflow-x: hidden;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom pulse animations for emergency states in red/white */
+@keyframes siren-pulse {
+  0%, 100% {
+    box-shadow: 0 0 18px 3px rgba(239, 68, 68, 0.7), inset 0 0 15px 3px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 35px 8px rgba(220, 38, 38, 0.95), inset 0 0 25px 6px rgba(220, 38, 38, 0.6);
+  }
+}
+
+.animate-siren {
+  animation: siren-pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes ping-slow {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Leaflet dark/high-contrast tactical map styling */
+.leaflet-container {
+  font-family: inherit !important;
+  background-color: #0a0a0a !important;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+}
+
+.leaflet-tile {
+  filter: brightness(0.65) invert(1) contrast(3.2) saturate(0.1) brightness(0.9);
+}
+
+.leaflet-popup-content-wrapper {
+  background: #0d0d0d !important;
+  color: #ffffff !important;
+  border-radius: 0.75rem !important;
+  border: 1px solid rgba(239, 68, 68, 0.5) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.8) !important;
+}
+
+.leaflet-popup-tip {
+  background: #0d0d0d !important;
+}
+
+/* Scrollbar styles in red & black */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(239, 68, 68, 0.5);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(239, 68, 68, 0.8);
+}
