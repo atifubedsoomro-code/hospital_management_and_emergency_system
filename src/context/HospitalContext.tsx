@@ -53,6 +53,13 @@ interface HospitalContextType {
   toggleMute: () => void;
   playClickTone: () => void;
   
+  // Sidebar & Section navigation
+  activeSection: string;
+  setActiveSection: (section: string) => void;
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: (open: boolean) => void;
+  toggleSidebar: () => void;
+  
   // Authentication Actions
   loginAsGuest: (role: 'ambulance' | 'customer') => void;
   loginWithCredentials: (role: 'doctor' | 'management', username: string, pass: string) => { success: boolean; error?: string };
@@ -154,6 +161,21 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [selectedAmbulanceId, setSelectedAmbulanceId] = useState<string>('RESCUE-1122-SK04');
   const [activeHospitalId, setActiveHospitalId] = useState<string>('hosp-1');
   const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [activeSection, setActiveSection] = useState<string>('all');
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+
+  // Set default active section based on role
+  useEffect(() => {
+    if (userRole === 'management') setActiveSection('all');
+    else if (userRole === 'ambulance') setActiveSection('intake');
+    else if (userRole === 'doctor') setActiveSection('duty');
+    else if (userRole === 'customer') setActiveSection('request');
+  }, [userRole]);
+
+  const toggleSidebar = useCallback(() => {
+    soundEffects.playClickTone();
+    setIsSidebarOpen((prev) => !prev);
+  }, []);
 
   // Sync to local storage as secondary backup
   useEffect(() => {
@@ -769,6 +791,11 @@ export const HospitalProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isMuted,
         toggleMute,
         playClickTone,
+        activeSection,
+        setActiveSection,
+        isSidebarOpen,
+        setIsSidebarOpen,
+        toggleSidebar,
         loginAsGuest,
         loginWithCredentials,
         logout,

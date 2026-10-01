@@ -15,15 +15,14 @@ import {
   Ambulance, 
   Zap, 
   Navigation, 
-  CheckCircle2, 
   Heart, 
   ShieldAlert, 
   MapPin, 
-  Clock, 
   ArrowRight,
   Flame,
   Activity,
-  Wind
+  Wind,
+  Layers
 } from 'lucide-react';
 
 export const AmbulanceView: React.FC = () => {
@@ -36,10 +35,10 @@ export const AmbulanceView: React.FC = () => {
     moveAmbulanceTowardsTarget,
     selectedAmbulanceId,
     setSelectedAmbulanceId,
-    playClickTone
+    playClickTone,
+    activeSection,
+    setActiveSection
   } = useHospital();
-
-  const [activeTab, setActiveTab] = useState<'intake' | 'active_transit'>('intake');
 
   const [patientName, setPatientName] = useState<string>('Muhammad Rafiq Soomro');
   const [age, setAge] = useState<number>(54);
@@ -160,7 +159,7 @@ export const AmbulanceView: React.FC = () => {
       targetHospitalId: targetHospId,
     });
 
-    setActiveTab('active_transit');
+    setActiveSection('transit');
   };
 
   const handleNextStatus = (currentStatus: DispatchStatus) => {
@@ -173,9 +172,13 @@ export const AmbulanceView: React.FC = () => {
     }
   };
 
+  const shouldShow = (sectionKey: string) => {
+    return activeSection === 'all' || activeSection === sectionKey;
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-5 sm:space-y-6">
-      {/* Top Header */}
+      {/* Top Cockpit Header */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 sm:p-4 shadow-xl flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3">
           <HospitalLogoFrame size="md" withGlow={true} />
@@ -190,7 +193,7 @@ export const AmbulanceView: React.FC = () => {
           </div>
         </div>
 
-        {/* Unit Selector & Tab Switch */}
+        {/* Unit Selector & Fast View Switch */}
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
           <select
             value={selectedAmbulanceId}
@@ -205,173 +208,140 @@ export const AmbulanceView: React.FC = () => {
             <option value="CHHIPA-1020-SK12">Chhipa Ambulance (Unit 1020 Sukkur)</option>
           </select>
 
-          <div className="flex bg-black p-1 rounded-xl border border-zinc-800">
+          {activeSection !== 'all' && (
             <button
+              type="button"
               onClick={() => {
                 playClickTone();
-                setActiveTab('intake');
+                setActiveSection('all');
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'intake'
-                  ? 'bg-red-600 text-white shadow-md font-black'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 transition-all cursor-pointer flex items-center gap-1"
             >
-              Rapid Intake
+              <Layers className="w-3.5 h-3.5 text-red-500" />
+              <span>All</span>
             </button>
-            <button
-              onClick={() => {
-                playClickTone();
-                setActiveTab('active_transit');
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                activeTab === 'active_transit'
-                  ? 'bg-white text-black font-black shadow-md'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              <span>Live Transit {currentDispatch ? `(${currentDispatch.etaMinutes}m)` : ''}</span>
-            </button>
-          </div>
+          )}
         </div>
       </div>
 
-      {activeTab === 'active_transit' && currentDispatch ? (
-        <div className="space-y-4 sm:space-y-5">
-          {/* Active Dispatch Card */}
-          <div className="bg-zinc-950 border border-red-600/60 rounded-3xl p-4 sm:p-5 shadow-2xl relative overflow-hidden neon-card-glow">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-4 border-b border-zinc-800">
-              <div>
-                <span className="text-[10px] font-bold tracking-widest uppercase text-red-500">ACTIVE EMERGENCY TRANSIT</span>
-                <h3 className="text-lg sm:text-xl font-black text-white">{currentDispatch.patientName}, {currentDispatch.age}y ({currentDispatch.gender})</h3>
-                <p className="text-xs text-zinc-300 font-semibold">{currentDispatch.condition}</p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <span className="text-[10px] text-zinc-400 block font-mono">ESTIMATED TRANSIT</span>
-                  <span className="text-xl sm:text-2xl font-black font-mono text-red-500">{currentDispatch.etaMinutes} MINS</span>
-                  <span className="text-[11px] text-zinc-400 block font-mono">{currentDispatch.distanceKm} km to door</span>
-                </div>
-                <div className="px-3 py-2 rounded-2xl bg-red-600 text-white font-black text-sm uppercase shadow-md">
-                  ESI {currentDispatch.esiLevel}
-                </div>
-              </div>
+      {/* SECTION 1: Active Transit Card (When 'transit', 'all', or when active transit exists) */}
+      {(shouldShow('transit') || (activeSection === 'all' && currentDispatch)) && currentDispatch && (
+        <div className="bg-zinc-950 border border-red-600/60 rounded-3xl p-4 sm:p-5 shadow-2xl relative overflow-hidden neon-card-glow space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+            <div>
+              <span className="text-[10px] font-bold tracking-widest uppercase text-red-500">ACTIVE EMERGENCY TRANSIT</span>
+              <h3 className="text-lg sm:text-xl font-black text-white">{currentDispatch.patientName}, {currentDispatch.age}y ({currentDispatch.gender})</h3>
+              <p className="text-xs text-zinc-300 font-semibold">{currentDispatch.condition}</p>
             </div>
 
-            {/* Target Hospital & Assigned Doctor Status */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4">
-              <div className="bg-black p-3 sm:p-3.5 rounded-2xl border border-zinc-800">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Destination Facility</span>
-                  <span className="text-[10px] font-mono text-white bg-zinc-900 border border-zinc-700 px-2 py-0.5 rounded">
-                    Room: {currentDispatch.requiredRoom}
-                  </span>
-                </div>
-                <h4 className="font-bold text-sm sm:text-base text-white">
-                  {hospitals.find((h) => h.id === currentDispatch.targetHospitalId)?.name || 'River City Hospital Sukkur'}
-                </h4>
-                <p className="text-xs text-zinc-400">
-                  {hospitals.find((h) => h.id === currentDispatch.targetHospitalId)?.address}
-                </p>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <span className="text-[10px] text-zinc-400 block font-mono">ESTIMATED TRANSIT</span>
+                <span className="text-xl sm:text-2xl font-black font-mono text-red-500">{currentDispatch.etaMinutes} MINS</span>
+                <span className="text-[11px] text-zinc-400 block font-mono">{currentDispatch.distanceKm} km to door</span>
               </div>
-
-              <div className="bg-black p-3 sm:p-3.5 rounded-2xl border border-zinc-800">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Assigned Specialist</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                    currentDispatch.doctorAcknowledged 
-                      ? 'bg-red-950 text-red-300 border border-red-700' 
-                      : 'bg-zinc-900 text-zinc-400 border border-zinc-700'
-                  }`}>
-                    {currentDispatch.doctorAcknowledged ? 'Ready on floor' : 'Standby'}
-                  </span>
-                </div>
-                <h4 className="font-bold text-sm sm:text-base text-white">
-                  {doctors.find((d) => d.id === currentDispatch.assignedDoctorId)?.name || 'On-Call Emergency Staff'}
-                </h4>
-                <p className="text-xs text-zinc-400">
-                  {doctors.find((d) => d.id === currentDispatch.assignedDoctorId)?.specialty || currentDispatch.requiredSpecialty}
-                </p>
+              <div className="px-3 py-2 rounded-2xl bg-red-600 text-white font-black text-sm uppercase shadow-md">
+                ESI {currentDispatch.esiLevel}
               </div>
             </div>
+          </div>
 
-            {/* Vitals strip */}
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 my-3 font-mono text-center text-xs">
-              <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                <span className="text-[9px] text-zinc-500 block uppercase">HR</span>
-                <span className="font-bold text-red-500">{currentDispatch.vitals.heartRate} bpm</span>
-              </div>
-              <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                <span className="text-[9px] text-zinc-500 block uppercase">BP</span>
-                <span className="font-bold text-white">
-                  {currentDispatch.vitals.bloodPressureSystolic}/{currentDispatch.vitals.bloodPressureDiastolic}
+          {/* Destination & Specialist */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            <div className="bg-black p-3 sm:p-3.5 rounded-2xl border border-zinc-800">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Destination Facility</span>
+                <span className="text-[10px] font-mono text-white bg-zinc-900 border border-zinc-700 px-2 py-0.5 rounded">
+                  Room: {currentDispatch.requiredRoom}
                 </span>
               </div>
-              <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                <span className="text-[9px] text-zinc-500 block uppercase">SpO2</span>
-                <span className="font-bold text-white">{currentDispatch.vitals.oxygenSaturation}%</span>
-              </div>
-              <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                <span className="text-[9px] text-zinc-500 block uppercase">RR</span>
-                <span className="font-bold text-zinc-300">{currentDispatch.vitals.respiratoryRate}/m</span>
-              </div>
-              <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                <span className="text-[9px] text-zinc-500 block uppercase">GCS</span>
-                <span className="font-bold text-white">{currentDispatch.vitals.gcs}</span>
-              </div>
-              <div className="bg-black p-2 rounded-xl border border-zinc-800">
-                <span className="text-[9px] text-zinc-500 block uppercase">Temp</span>
-                <span className="font-bold text-zinc-200">{currentDispatch.vitals.temperatureC}°C</span>
-              </div>
+              <h4 className="font-bold text-sm sm:text-base text-white">
+                {hospitals.find((h) => h.id === currentDispatch.targetHospitalId)?.name || 'River City Hospital Sukkur'}
+              </h4>
+              <p className="text-xs text-zinc-400">
+                {hospitals.find((h) => h.id === currentDispatch.targetHospitalId)?.address}
+              </p>
             </div>
 
-            {/* Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-zinc-800">
-              <button
-                type="button"
-                onClick={() => {
-                  playClickTone();
-                  moveAmbulanceTowardsTarget(currentDispatch.id);
-                }}
-                className="bg-white hover:bg-zinc-200 text-black font-black text-xs px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 transition-all active:scale-95 cursor-pointer uppercase btn-neon-white"
-              >
-                <Navigation className="w-4 h-4 text-red-600" />
-                <span>Drive Closer (Update GPS)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleNextStatus(currentDispatch.status)}
-                className="bg-red-600 hover:bg-red-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-lg uppercase tracking-wide flex items-center gap-2 transition-all active:scale-95 cursor-pointer btn-neon-red"
-              >
-                <span>Advance: {currentDispatch.status.replace(/_/g, ' ')}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+            <div className="bg-black p-3 sm:p-3.5 rounded-2xl border border-zinc-800">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Assigned Specialist</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                  currentDispatch.doctorAcknowledged 
+                    ? 'bg-red-950 text-red-300 border border-red-700' 
+                    : 'bg-zinc-900 text-zinc-400 border border-zinc-700'
+                }`}>
+                  {currentDispatch.doctorAcknowledged ? 'Ready on floor' : 'Standby'}
+                </span>
+              </div>
+              <h4 className="font-bold text-sm sm:text-base text-white">
+                {doctors.find((d) => d.id === currentDispatch.assignedDoctorId)?.name || 'On-Call Emergency Staff'}
+              </h4>
+              <p className="text-xs text-zinc-400">
+                {doctors.find((d) => d.id === currentDispatch.assignedDoctorId)?.specialty || currentDispatch.requiredSpecialty}
+              </p>
             </div>
           </div>
 
-          {/* Leaflet Navigation Map */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs sm:text-sm font-bold text-zinc-300 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span>Sukkur Emergency Fast Path Navigation</span>
-              </h3>
-              <span className="text-[11px] text-zinc-400 font-mono">Target: {currentDispatch.requiredRoom}</span>
+          {/* Vitals strip */}
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 my-2 font-mono text-center text-xs">
+            <div className="bg-black p-2 rounded-xl border border-zinc-800">
+              <span className="text-[9px] text-zinc-500 block uppercase">HR</span>
+              <span className="font-bold text-red-500">{currentDispatch.vitals.heartRate} bpm</span>
             </div>
-            <HospitalMap
-              hospitals={hospitals}
-              dispatches={dispatches}
-              selectedDispatchId={currentDispatch.id}
-              heightClass="h-[300px] sm:h-[380px]"
-            />
+            <div className="bg-black p-2 rounded-xl border border-zinc-800">
+              <span className="text-[9px] text-zinc-500 block uppercase">BP</span>
+              <span className="font-bold text-white">
+                {currentDispatch.vitals.bloodPressureSystolic}/{currentDispatch.vitals.bloodPressureDiastolic}
+              </span>
+            </div>
+            <div className="bg-black p-2 rounded-xl border border-zinc-800">
+              <span className="text-[9px] text-zinc-500 block uppercase">SpO2</span>
+              <span className="font-bold text-white">{currentDispatch.vitals.oxygenSaturation}%</span>
+            </div>
+            <div className="bg-black p-2 rounded-xl border border-zinc-800">
+              <span className="text-[9px] text-zinc-500 block uppercase">RR</span>
+              <span className="font-bold text-zinc-300">{currentDispatch.vitals.respiratoryRate}/m</span>
+            </div>
+            <div className="bg-black p-2 rounded-xl border border-zinc-800">
+              <span className="text-[9px] text-zinc-500 block uppercase">GCS</span>
+              <span className="font-bold text-white">{currentDispatch.vitals.gcs}</span>
+            </div>
+            <div className="bg-black p-2 rounded-xl border border-zinc-800">
+              <span className="text-[9px] text-zinc-500 block uppercase">Temp</span>
+              <span className="font-bold text-zinc-200">{currentDispatch.vitals.temperatureC}°C</span>
+            </div>
+          </div>
+
+          {/* Tactical actions */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-zinc-800">
+            <button
+              type="button"
+              onClick={() => {
+                playClickTone();
+                moveAmbulanceTowardsTarget(currentDispatch.id);
+              }}
+              className="bg-white hover:bg-zinc-200 text-black font-black text-xs px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 transition-all active:scale-95 cursor-pointer uppercase btn-neon-white"
+            >
+              <Navigation className="w-4 h-4 text-red-600" />
+              <span>Drive Closer (Update GPS)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleNextStatus(currentDispatch.status)}
+              className="bg-red-600 hover:bg-red-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-lg uppercase tracking-wide flex items-center gap-2 transition-all active:scale-95 cursor-pointer btn-neon-red"
+            >
+              <span>Advance: {currentDispatch.status.replace(/_/g, ' ')}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
-      ) : (
-        /* RAPID PATIENT INTAKE FORM */
-        <form onSubmit={handleIntakeSubmit} className="space-y-5 sm:space-y-6">
+      )}
+
+      {/* SECTION 2: Rapid Patient Intake Form */}
+      {shouldShow('intake') && (
+        <form onSubmit={handleIntakeSubmit} className="space-y-5">
           {/* Quick Condition Presets */}
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 sm:p-4 shadow-lg">
             <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2.5">
@@ -606,111 +576,6 @@ export const AmbulanceView: React.FC = () => {
             </div>
           </div>
 
-          {/* Facility Routing Ranking */}
-          <div className="bg-zinc-950 border border-red-600/40 rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-                <h3 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
-                  Facility Routing Algorithm (Sukkur Network)
-                </h3>
-              </div>
-              <span className="text-xs font-mono text-red-400">
-                Proximity + {requiredRoom} + On-Duty Specialists
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {algorithmRecommendations.map((rec, idx) => {
-                const isTop = idx === 0;
-                const isSelected = selectedHospitalId === rec.hospital.id || (!selectedHospitalId && isTop);
-
-                return (
-                  <div
-                    key={rec.hospital.id}
-                    onClick={() => {
-                      playClickTone();
-                      setSelectedHospitalId(rec.hospital.id);
-                    }}
-                    className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-zinc-900 border-red-500 shadow-xl shadow-red-950/40 ring-1 ring-red-500'
-                        : 'bg-black border-zinc-800 hover:bg-zinc-900 hover:border-zinc-700'
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                          isTop ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-300'
-                        }`}>
-                          #{idx + 1}
-                        </span>
-                        <div>
-                          <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                            {rec.hospital.name}
-                            {isTop && (
-                              <span className="text-[10px] font-mono text-red-400 border border-red-900 bg-red-950 px-1.5 py-0.5 rounded">
-                                Best Match
-                              </span>
-                            )}
-                          </h4>
-                          <span className="text-xs text-zinc-400 font-mono">
-                            {rec.distanceKm} km · {rec.etaMinutes} mins ETA
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <span className="text-[10px] text-zinc-400 block font-mono">MATCH SCORE</span>
-                          <span className={`text-base sm:text-lg font-black font-mono ${
-                            rec.score >= 80 ? 'text-white font-black' : rec.score >= 60 ? 'text-zinc-300' : 'text-red-500'
-                          }`}>
-                            {rec.score}%
-                          </span>
-                        </div>
-                        <input
-                          type="radio"
-                          name="destinationHospital"
-                          checked={isSelected}
-                          onChange={() => {
-                            playClickTone();
-                            setSelectedHospitalId(rec.hospital.id);
-                          }}
-                          className="w-4 h-4 text-red-600 focus:ring-red-500 bg-black border-zinc-700 cursor-pointer"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-2 border-t border-zinc-800 mt-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${rec.roomAvailable ? 'bg-white' : 'bg-red-600'}`} />
-                        <span className="text-zinc-300">
-                          {requiredRoom}: <strong className={rec.roomAvailable ? 'text-white' : 'text-red-500'}>
-                            {rec.roomAvailable ? `${rec.availableRoomCount} Open & Ready` : 'Full / Unavailable'}
-                          </strong>
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${rec.hasSpecialist ? 'bg-white' : 'bg-red-600'}`} />
-                        <span className="text-zinc-300">
-                          Specialist: <strong className={rec.hasSpecialist ? 'text-white' : 'text-zinc-400'}>
-                            {rec.hasSpecialist ? `${rec.availableDoctors[0].name} (On-Duty)` : 'General Duty Staff on Floor'}
-                          </strong>
-                        </span>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-zinc-400 italic mt-2 bg-black p-2 rounded-xl border border-zinc-800">
-                      💡 {rec.recommendationReason}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Submit Action */}
           <div className="pt-2">
             <button
               type="submit"
@@ -721,6 +586,133 @@ export const AmbulanceView: React.FC = () => {
             </button>
           </div>
         </form>
+      )}
+
+      {/* SECTION 3: Tactical Emergency Route Map */}
+      {shouldShow('map') && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs sm:text-sm font-bold text-zinc-300 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span>Sukkur Emergency Fast Path Tactical Map</span>
+            </h3>
+            <span className="text-[11px] text-zinc-400 font-mono">
+              Target: {currentDispatch?.requiredRoom || requiredRoom}
+            </span>
+          </div>
+          <HospitalMap
+            hospitals={hospitals}
+            dispatches={dispatches}
+            selectedDispatchId={currentDispatch?.id}
+            heightClass="h-[340px] sm:h-[420px]"
+          />
+        </div>
+      )}
+
+      {/* SECTION 4: Hospital Routing Algorithm */}
+      {shouldShow('ranking') && (
+        <div className="bg-zinc-950 border border-red-600/40 rounded-2xl p-4 sm:p-5 shadow-2xl relative overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+              <h3 className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
+                Facility Routing Algorithm (Sukkur Network)
+              </h3>
+            </div>
+            <span className="text-xs font-mono text-red-400">
+              Proximity + {requiredRoom} + On-Duty Specialists
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {algorithmRecommendations.map((rec, idx) => {
+              const isTop = idx === 0;
+              const isSelected = selectedHospitalId === rec.hospital.id || (!selectedHospitalId && isTop);
+
+              return (
+                <div
+                  key={rec.hospital.id}
+                  onClick={() => {
+                    playClickTone();
+                    setSelectedHospitalId(rec.hospital.id);
+                  }}
+                  className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-zinc-900 border-red-500 shadow-xl shadow-red-950/40 ring-1 ring-red-500'
+                      : 'bg-black border-zinc-800 hover:bg-zinc-900 hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
+                        isTop ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-300'
+                      }`}>
+                        #{idx + 1}
+                      </span>
+                      <div>
+                        <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                          {rec.hospital.name}
+                          {isTop && (
+                            <span className="text-[10px] font-mono text-red-400 border border-red-900 bg-red-950 px-1.5 py-0.5 rounded">
+                              Best Match
+                            </span>
+                          )}
+                        </h4>
+                        <span className="text-xs text-zinc-400 font-mono">
+                          {rec.distanceKm} km · {rec.etaMinutes} mins ETA
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-[10px] text-zinc-400 block font-mono">MATCH SCORE</span>
+                        <span className={`text-base sm:text-lg font-black font-mono ${
+                          rec.score >= 80 ? 'text-white font-black' : rec.score >= 60 ? 'text-zinc-300' : 'text-red-500'
+                        }`}>
+                          {rec.score}%
+                        </span>
+                      </div>
+                      <input
+                        type="radio"
+                        name="destinationHospital"
+                        checked={isSelected}
+                        onChange={() => {
+                          playClickTone();
+                          setSelectedHospitalId(rec.hospital.id);
+                        }}
+                        className="w-4 h-4 text-red-600 focus:ring-red-500 bg-black border-zinc-700 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-2 border-t border-zinc-800 mt-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${rec.roomAvailable ? 'bg-white' : 'bg-red-600'}`} />
+                      <span className="text-zinc-300">
+                        {requiredRoom}: <strong className={rec.roomAvailable ? 'text-white' : 'text-red-500'}>
+                          {rec.roomAvailable ? `${rec.availableRoomCount} Open & Ready` : 'Full / Unavailable'}
+                        </strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${rec.hasSpecialist ? 'bg-white' : 'bg-red-600'}`} />
+                      <span className="text-zinc-300">
+                        Specialist: <strong className={rec.hasSpecialist ? 'text-white' : 'text-zinc-400'}>
+                          {rec.hasSpecialist ? `${rec.availableDoctors[0].name} (On-Duty)` : 'General Duty Staff on Floor'}
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-zinc-400 italic mt-2 bg-black p-2 rounded-xl border border-zinc-800">
+                    💡 {rec.recommendationReason}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );
